@@ -225,7 +225,7 @@ class HtmlGen:
             log("Starting restore scheme: " + cs)
             # TODO: move to other thread
             write_file(packages_path, cs, read_file(packages_path, cs + ".chback"))
-            self.colors = []
+            self.colors = {}
             self.string = ""
             log("Restore done.")
         else:
