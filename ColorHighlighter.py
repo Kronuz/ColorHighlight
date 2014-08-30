@@ -12,7 +12,7 @@ import sublime
 import sublime_plugin
 
 # TODO: import ColorHighlighter.colors for ST3
-from .colors import names_to_hex
+from .colors import names_to_hex, xterm_to_hex
 
 version = "3.0"
 
@@ -57,48 +57,68 @@ def read_file(pp, fl):
 # #FFF
 # rgb(255,255,255)
 # rgba(255, 255, 255, 1)
+# rgba(255, 255, 255, .2)
 # black
 # rgba(white, 20%)
 # 0xFFFFFF
 
 
-_ALL_HEX_COLORS = r'\b%s\b|%s' % (r'\b|\b'.join(names_to_hex.keys()), r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
-_ALL_HEX_COLORS = r'%s|%s|%s' % (
-    r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*([0-9]+(?:\.\d+)?%%?)\)' % _ALL_HEX_COLORS,
-    r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
-    r'(%s)' % _ALL_HEX_COLORS,
-)
-_ALL_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+def regexp_factory(dictionary):
+    _ALL_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
+    _ALL_HEX_COLORS = r'%s|%s|%s' % (
+        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _ALL_HEX_COLORS,
+        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+        r'(%s)' % _ALL_HEX_COLORS,
+    )
+    _ALL_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-_XHEX_COLORS = r'\b%s\b|%s' % (r'\b|\b'.join(names_to_hex.keys()), r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
-_XHEX_COLORS = r'%s|%s|%s' % (
-    r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*([0-9]+(?:\.\d+)?%%?)\)' % _XHEX_COLORS,
-    r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
-    r'(%s)' % _XHEX_COLORS,
-)
-_XHEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _XHEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
+    _XHEX_COLORS = r'%s|%s|%s' % (
+        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _XHEX_COLORS,
+        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+        r'(%s)' % _XHEX_COLORS,
+    )
+    _XHEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-_HEX_COLORS = r'\b%s\b|%s' % (r'\b|\b'.join(names_to_hex.keys()), r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
-_HEX_COLORS = r'%s|%s|%s' % (
-    r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*([0-9]+(?:\.\d+)?%%?)\)' % _HEX_COLORS,
-    r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
-    r'(%s)' % _HEX_COLORS,
-)
-_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
+    _HEX_COLORS = r'%s|%s|%s' % (
+        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _HEX_COLORS,
+        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+        r'(%s)' % _HEX_COLORS,
+    )
+    _HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-_NO_HEX_COLORS = r'\b%s\b' % (r'\b|\b'.join(names_to_hex.keys()),)
-_NO_HEX_COLORS = r'%s|%s|%s' % (
-    r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*([0-9]+(?:\.\d+)?%%?)\)' % _NO_HEX_COLORS,
-    r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
-    r'(%s)' % _NO_HEX_COLORS,
-)
-_NO_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _NO_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()),)
+    _NO_HEX_COLORS = r'%s|%s|%s' % (
+        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _NO_HEX_COLORS,
+        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+        r'(%s)' % _NO_HEX_COLORS,
+    )
+    _NO_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
+    return (
+        _NO_HEX_COLORS,
+        _NO_HEX_COLORS_CAPTURE,
+        _XHEX_COLORS,
+        _XHEX_COLORS_CAPTURE,
+        _HEX_COLORS,
+        _HEX_COLORS_CAPTURE,
+        _ALL_HEX_COLORS,
+        _ALL_HEX_COLORS_CAPTURE,
+    )
+
+all_names_to_hex = dict(names_to_hex, **xterm_to_hex)
+_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex)
+__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE, __XHEX_COLORS, __XHEX_COLORS_CAPTURE, __HEX_COLORS, __HEX_COLORS_CAPTURE, __ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE = regexp_factory(all_names_to_hex)
 COLORS_REGEX = {
-    (False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
-    (False, True): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
-    (True, False): (_HEX_COLORS, _HEX_COLORS_CAPTURE),
-    (True, True): (_ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE),
+    (False, False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
+    (False, True, False): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
+    (True, False, False): (_HEX_COLORS, _HEX_COLORS_CAPTURE),
+    (True, True, False): (_ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE),
+    (False, False, True): (__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE,),
+    (False, True, True): (__XHEX_COLORS, __XHEX_COLORS_CAPTURE),
+    (True, False, True): (__HEX_COLORS, __HEX_COLORS_CAPTURE),
+    (True, True, True): (__ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE),
 }
 
 _R_RE = re.compile(r'\\([0-9])')
@@ -558,8 +578,9 @@ def highlight_colors(view, selection=False, **kwargs):
     found = []
     _hex_values = bool(view.settings().get('colorhighlighter_hex_values'))
     _xhex_values = bool(view.settings().get('colorhighlighter_0x_hex_values'))
+    _xterm_color_values = bool(view.settings().get('colorhighlighter_xterm_color_values'))
     if selection:
-        colors_re, colors_re_capture = COLORS_RE[(_hex_values, _xhex_values)]
+        colors_re, colors_re_capture = COLORS_RE[(_hex_values, _xhex_values, _xterm_color_values)]
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
         matches = [(sublime.Region(selected_lines[i].begin() + m.start(), selected_lines[i].begin() + m.end()), m.groups()) if m else (None, None) for i, am in enumerate(matches) for m in am]
@@ -570,7 +591,7 @@ def highlight_colors(view, selection=False, **kwargs):
             ranges = []
     else:
         selected_lines = None
-        colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values)]
+        colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values, _xterm_color_values)]
         ranges = view.find_all(colors_re, 0, colors_re_capture, found)
     for i, col in enumerate(found):
         col = col.rstrip(',')
@@ -578,7 +599,7 @@ def highlight_colors(view, selection=False, **kwargs):
         if len(col) == 1:
             # In the form of color name black or #FFFFFFFF or 0xFFFFFF:
             col0 = col[0]
-            col0 = names_to_hex.get(col0.lower(), col0.upper())
+            col0 = all_names_to_hex.get(col0.lower(), col0.upper())
             if col0.startswith('0X'):
                 col0 = '#' + col0[2:]
             if len(col0) == 4:
@@ -606,7 +627,7 @@ def highlight_colors(view, selection=False, **kwargs):
         else:
             # In the form of rgba(white, 20%) or rgba(#FFFFFF, 0.4):
             col0 = col[0]
-            col0 = names_to_hex.get(col0.lower(), col0.upper())
+            col0 = all_names_to_hex.get(col0.lower(), col0.upper())
             if col0.startswith('0X'):
                 col0 = '#' + col0[2:]
             if len(col0) == 4:
