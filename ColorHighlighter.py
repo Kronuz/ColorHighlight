@@ -20,51 +20,30 @@ version = "3.0"
 hex_digits = string.digits + "ABCDEF"
 
 loglist = ["Version: " + version]
-PREFIX = "mcol_"
 
 
 def log(s):
     global loglist
     loglist.append(s)
-    # print(s)
-
-
-def write_file(pp, fl, s):
-    rf = pp + fl
-    dn = os.path.dirname(rf)
-    if not os.path.exists(dn):
-        os.makedirs(dn)
-    f = open(rf, 'w')
-    f.write(s)
-    f.close()
-
-
-def read_file(pp, fl):
-    rf = pp + fl
-    if os.path.exists(rf):
-        f = open(rf, 'r')
-        res = f.read()
-        f.close()
-    else:
-        rf = 'Packages' + fl
-        res = sublime.load_resource(rf)
-    return res
+    # print("[ColorHighlighter]", s)
 
 
 # Color formats:
-# #FFFFFFFF
+# #000000FF
 # #FFFFFF
+# #FFF7
 # #FFF
 # rgb(255,255,255)
 # rgba(255, 255, 255, 1)
 # rgba(255, 255, 255, .2)
+# rgba(255, 255, 255, 0.5)
 # black
 # rgba(white, 20%)
 # 0xFFFFFF
 
 
 def regexp_factory(dictionary):
-    _ALL_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
+    _ALL_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _ALL_HEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _ALL_HEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -80,7 +59,7 @@ def regexp_factory(dictionary):
     )
     _XHEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-    _HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b')
+    _HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _HEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _HEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -147,87 +126,146 @@ def tohex(r, g, b, a):
 
 
 class HtmlGen:
+    name = "Color"
+    prefix = "col_"
+    backup_ext = ".chback"
+
     colors = {}
     color_scheme = None
     need_upd = False
     need_restore = False
     need_backup = False
-    string = ""
     gen_string = """
-<dict>
-<key>name</key>
-<string>mon_color</string>
-<key>scope</key>
-<string>%s</string>
-<key>settings</key>
-<dict>
-<key>background</key>
-<string>%s</string>
-<key>caret</key>
-<string>%s</string>
-<key>foreground</key>
-<string>%s</string>
-</dict>
-</dict>\n
+        <dict>
+            <key>name</key>
+            <string>%s</string>
+            <key>scope</key>
+            <string>%s</string>
+            <key>settings</key>
+            <dict>
+                <key>background</key>
+                <string>%s</string>
+                <key>caret</key>
+                <string>%s</string>
+                <key>foreground</key>
+                <string>%s</string>
+            </dict>
+        </dict>
 """
+
+    def normalize(self, col):
+        if col:
+            col = all_names_to_hex.get(col.lower(), col.upper())
+            if col.startswith('0X'):
+                col = '#' + col[2:]
+            try:
+                if col[0] != '#':
+                    raise ValueError
+                if len(col) == 4:
+                    col = '#' + col[1] * 2 + col[2] * 2 + col[3] * 2 + 'FF'
+                elif len(col) == 5:
+                    col = '#' + col[1] * 2 + col[2] * 2 + col[3] * 2 + col[4] * 2
+                elif len(col) == 7:
+                    col += 'FF'
+                return '#%02X%02X%02X%02X' % (int(col[1:3], 16), int(col[3:5], 16), int(col[5:7], 16), int(col[7:9], 16))
+            except Exception:
+                print("Invalid color: %r" % col)
+
+    def write_file(self, pp, fl, s):
+        rf = pp + fl
+        dn = os.path.dirname(rf)
+        if not os.path.exists(dn):
+            os.makedirs(dn)
+        f = open(rf, 'w')
+        f.write(s)
+        f.close()
+
+    def read_file(self, pp, fl):
+        rf = pp + fl
+        if os.path.exists(rf):
+            f = open(rf, 'r')
+            res = f.read()
+            f.close()
+        else:
+            rf = 'Packages' + fl
+            res = sublime.load_resource(rf)
+        return res
 
     def get_y(self, col):
         return (0.3 * int(col[1:3], 16) + 0.59 * int(col[3:5], 16) + 0.11 * int(col[5:7], 16)) * (int(col[7:9], 16) / 255.0)
 
-    def get_cont_col(self, col):
+    def get_fg_col(self, col):
         if self.get_y(col) > 255.0 / 2:
             return '#000000FF'
         return '#FFFFFFFF'
 
     def region_name(self, s):
-        return PREFIX + s[1:]
+        return self.prefix + s[1:]
 
     def add_color(self, col):
+        col = self.normalize(col)
+        if not col:
+            return
         if col not in self.colors:
-            cont = self.get_cont_col(col)
-            name = self.region_name(col)
-            self.string += self.gen_string % (name, col, cont, cont)
+            self.colors[col] = self.region_name(col)
             self.need_upd = True
-            self.colors[col] = name
         return self.colors[col]
 
     def need_update(self):
         return self.need_upd
 
-    def update(self, view):
-        if not self.need_upd:
-            return
-        self.need_upd = False
-
+    def color_scheme_path(self, view):
+        packages_path = sublime.packages_path()
         cs = self.color_scheme
         if cs is None:
             self.color_scheme = view.settings().get('color_scheme')
             cs = self.color_scheme
         # do not support empty color scheme
         if not cs:
-            log("Empty scheme, can't backup")
+            log("Empty scheme")
             return
         # extract name
         cs = cs[cs.find('/'):]
-        cont = None
-        packages_path = sublime.packages_path()
-        if os.path.exists(packages_path + cs + ".chback"):
-            cont = read_file(packages_path, cs + ".chback")
+        return packages_path, cs
+
+    def get_color_scheme(self, packages_path, cs):
+        cont = self.read_file(packages_path, cs)
+        if os.path.exists(packages_path + cs + self.backup_ext):
             log("Already backuped")
         else:
-            cont = read_file(packages_path, cs)
-            write_file(packages_path, cs + ".chback", cont)  # backup
+            self.write_file(packages_path, cs + self.backup_ext, cont)  # backup
             log("Backup done")
+        return cont
 
-        # edit cont
-        n = cont.find("<array>") + len("<array>")
-        try:
-            cont = cont[:n] + self.string + cont[n:]
-        except UnicodeDecodeError:
-            cont = cont[:n] + self.string.encode("utf-8") + cont[n:]
+    def update(self, view):
+        if not self.need_upd:
+            return
+        self.need_upd = False
 
-        write_file(packages_path, cs, cont)
-        self.need_restore = True
+        color_scheme_path = self.color_scheme_path(view)
+        if not color_scheme_path:
+            return
+        packages_path, cs = color_scheme_path
+        cont = self.get_color_scheme(packages_path, cs)
+
+        current_colors = set("#%s" % c for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
+
+        string = ""
+        for col, name in self.colors.items():
+            if col not in current_colors:
+                fg_col = self.get_fg_col(col)
+                string += self.gen_string % (self.name, name, col, fg_col, fg_col)
+
+        if string:
+            # edit cont
+            n = cont.find("<array>") + len("<array>")
+            try:
+                cont = cont[:n] + string + cont[n:]
+            except UnicodeDecodeError:
+                cont = cont[:n] + string.encode("utf-8") + cont[n:]
+
+            self.write_file(packages_path, cs, cont)
+            self.need_restore = True
 
     def restore_color_scheme(self):
         if not self.need_restore:
@@ -241,19 +279,25 @@ class HtmlGen:
         # extract name
         cs = cs[cs.find('/'):]
         packages_path = sublime.packages_path()
-        if os.path.exists(packages_path + cs + ".chback"):
+        if os.path.exists(packages_path + cs + self.backup_ext):
             log("Starting restore scheme: " + cs)
             # TODO: move to other thread
-            write_file(packages_path, cs, read_file(packages_path, cs + ".chback"))
+            self.write_file(packages_path, cs, self.read_file(packages_path, cs + self.backup_ext))
             self.colors = {}
-            self.string = ""
             log("Restore done.")
         else:
             log("No backup :(")
 
     def set_color_scheme(self, view):
-        self.color_scheme = view.settings().get('color_scheme')
-        self.need_backup = True
+        cs = view.settings().get('color_scheme')
+        if cs != self.color_scheme:
+            color_scheme_path = self.color_scheme_path(view)
+            if color_scheme_path:
+                packages_path, cs = color_scheme_path
+                cont = self.get_color_scheme(packages_path, cs)
+                self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
+            self.color_scheme = view.settings().get('color_scheme')
+            self.need_backup = True
 
     def change_color_scheme(self, view):
         cs = view.settings().get('color_scheme')
