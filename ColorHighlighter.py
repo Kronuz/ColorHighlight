@@ -300,7 +300,8 @@ class HtmlGen:
 
     def change_color_scheme(self, view):
         cs = view.settings().get('color_scheme')
-        if cs != self.color_scheme:
+        if cs and cs != self.color_scheme:
+            log("Color scheme changed %s -> %s" % (self.color_scheme, cs))
             self.restore_color_scheme()
             self.set_color_scheme(view)
             self.update(view)
