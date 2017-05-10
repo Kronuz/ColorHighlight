@@ -19,11 +19,6 @@
                         "mnemonic": "S"
                     },
                     {
-                        "caption": "Print log",
-                        "command": "chlog",
-                        "mnemonic": "L"
-                    },
-                    {
                         "command": "hex_vals_as_colors",
                         "caption": "Hex values as colors",
                         "mnemonic": "H",
