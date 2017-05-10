@@ -14,18 +14,15 @@ import sublime_plugin
 # TODO: import ColorHighlighter.colors for ST3
 from .colors import names_to_hex, xterm_to_hex
 
-version = "3.0"
+version = "3.1"
 
 # Constants
 hex_digits = string.digits + "ABCDEF"
 
-loglist = ["Version: " + version]
-
 
 def log(s):
-    global loglist
-    loglist.append(s)
     # print("[ColorHighlighter]", s)
+    pass
 
 
 # Color formats:
@@ -439,18 +436,6 @@ class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
 
         return enabled
     is_checked = is_enabled
-
-
-# command to print log
-class chlogCommand(sublime_plugin.TextCommand):
-    def run(self, edit):
-        res = ""
-        for l in loglist:
-            res += l + "\n"
-        if res == "":
-            return
-        log("Log printed.")
-        #self.view.insert(edit, 0, res + "\n\n\n")
 
 
 # command to restore color scheme
