@@ -263,6 +263,7 @@ class HtmlGen:
 
             self.write_file(packages_path, cs, cont)
             self.need_restore = True
+            log("Updated")
 
     def restore_color_scheme(self):
         if not self.need_restore:
