@@ -28,5 +28,9 @@
         "caption": "ColorHighlighter: Reset",
         "command": "color_highlighter",
         "args": {"action": "reset"}
+    },
+    {
+        "caption": "ColorHighlighter: Restore Color Scheme",
+        "command": "restore_color_scheme",
     }
 ]

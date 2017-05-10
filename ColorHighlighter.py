@@ -37,10 +37,15 @@ def log(s):
 # black
 # rgba(white, 20%)
 # 0xFFFFFF
+# \033[38;15m
 
 
-def regexp_factory(dictionary):
-    _ALL_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
+def regexp_factory(names, xterm):
+    _COLORS = r'(?<![-.\w])%s(?![-.\w])' % r'(?![-.\w])|(?<![-.\w])'.join(names.keys())
+    if xterm:
+        _COLORS += r'|(?<=[;])%s(?=[;m])' % r'(?=[;m])|(?<=[;])'.join(xterm.keys())
+
+    _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _ALL_HEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _ALL_HEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -48,7 +53,7 @@ def regexp_factory(dictionary):
     )
     _ALL_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-    _XHEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
+    _XHEX_COLORS = r'%s|%s' % (_COLORS, r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
     _XHEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _XHEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -56,7 +61,7 @@ def regexp_factory(dictionary):
     )
     _XHEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-    _HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])|%s' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()), r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
+    _HEX_COLORS = r'%s|%s' % (_COLORS, r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _HEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _HEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -64,7 +69,7 @@ def regexp_factory(dictionary):
     )
     _HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
 
-    _NO_HEX_COLORS = r'(?<![-.\w])%s(?![-.\w])' % (r'(?![-.\w])|(?<![-.\w])'.join(dictionary.keys()),)
+    _NO_HEX_COLORS = r'%s' % (_COLORS,)
     _NO_HEX_COLORS = r'%s|%s|%s' % (
         r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _NO_HEX_COLORS,
         r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
@@ -84,8 +89,8 @@ def regexp_factory(dictionary):
     )
 
 all_names_to_hex = dict(names_to_hex, **xterm_to_hex)
-_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex)
-__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE, __XHEX_COLORS, __XHEX_COLORS_CAPTURE, __HEX_COLORS, __HEX_COLORS_CAPTURE, __ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE = regexp_factory(all_names_to_hex)
+_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, None)
+__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE, __XHEX_COLORS, __XHEX_COLORS_CAPTURE, __HEX_COLORS, __HEX_COLORS_CAPTURE, __ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, xterm_to_hex)
 COLORS_REGEX = {
     (False, False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
     (False, True, False): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
@@ -661,6 +666,7 @@ def highlight_colors(view, selection=False, **kwargs):
         selected_lines = None
         colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values, _xterm_color_values)]
         ranges = view.find_all(colors_re, 0, colors_re_capture, found)
+
     for i, col in enumerate(found):
         col = col.rstrip(',')
         col = col.split(',')

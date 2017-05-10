@@ -16,7 +16,7 @@
                     {
                         "caption": "Restore color scheme",
                         "command": "restore_color_scheme",
-                        "mnemonic": "R"
+                        "mnemonic": "S"
                     },
                     {
                         "caption": "Print log",
