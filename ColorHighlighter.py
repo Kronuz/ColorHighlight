@@ -313,31 +313,49 @@ ALL_SETTINGS = [
     'colorhighlighter',
     'colorhighlighter_0x_hex_values',
     'colorhighlighter_hex_values',
+    'colorhighlighter_xterm_color_values',
+    'colorhighlighter_delay',
 ]
 
 
 def settings_changed():
     for window in sublime.windows():
         for view in window.views():
-            reload_settings(view)
+            reload_settings(view.settings())
 
 
-def reload_settings(view):
+def reload_settings(settings):
     '''Restores user settings.'''
     settings_name = 'ColorHighlighter'
-    settings = sublime.load_settings(settings_name + '.sublime-settings')
-    settings.clear_on_change(settings_name)
-    settings.add_on_change(settings_name, settings_changed)
+    global_settings = sublime.load_settings(settings_name + '.sublime-settings')
+    global_settings.clear_on_change(settings_name)
+    global_settings.add_on_change(settings_name, settings_changed)
 
-    view_settings = view.settings()
     for setting in ALL_SETTINGS:
-        if settings.get(setting) is not None:
-            view_settings.set(setting, settings.get(setting))
+        if global_settings.has(setting):
+            settings.set(setting, global_settings.get(setting))
 
-    if view_settings.get('colorhighlighter') is None:
-        view_settings.set('colorhighlighter', True)
+    if not settings.has('colorhighlighter'):
+        settings.set('colorhighlighter', True)
 
-    return view_settings
+    if not settings.has('colorhighlighter_0x_hex_values'):
+        settings.set('colorhighlighter_0x_hex_values', True)
+
+    if not settings.has('colorhighlighter_hex_values'):
+        settings.set('colorhighlighter_hex_values', True)
+
+    if not settings.has('colorhighlighter_xterm_color_values'):
+        settings.set('colorhighlighter_xterm_color_values', True)
+
+    if not settings.has('colorhighlighter_delay'):
+        settings.set('colorhighlighter_delay', 0)
+
+
+def get_setting(settings, name):
+    if not settings.has(name):
+        reload_settings(settings)
+    return settings.get(name)
+
 
 # Commands
 
@@ -353,7 +371,8 @@ class ColorHighlighterCommand(sublime_plugin.WindowCommand):
     def is_enabled(self):
         view = self.window.active_view()
         if view:
-            return bool(view.settings().get("colorhighlighter"))
+            settings = view.settings()
+            return bool(get_setting(settings, 'colorhighlighter'))
         return False
 
 
@@ -368,9 +387,10 @@ class ColorHighlighterEnableLoadSaveCommand(ColorHighlighterCommand):
 
         if enabled:
             view = self.window.active_view()
-
-            if view and view.settings().get('colorhighlighter') == 'load-save':
-                return False
+            if view:
+                settings = view.settings()
+                if get_setting(settings, 'colorhighlighter') == 'load-save':
+                    return False
 
         return enabled
 
@@ -381,9 +401,10 @@ class ColorHighlighterEnableSaveOnlyCommand(ColorHighlighterCommand):
 
         if enabled:
             view = self.window.active_view()
-
-            if view and view.settings().get('colorhighlighter') == 'save-only':
-                return False
+            if view:
+                settings = view.settings()
+                if get_setting(settings, 'colorhighlighter') == 'save-only':
+                    return False
 
         return enabled
 
@@ -394,9 +415,10 @@ class ColorHighlighterDisableCommand(ColorHighlighterCommand):
 
         if enabled:
             view = self.window.active_view()
-
-            if view and view.settings().get('colorhighlighter') is False:
-                return False
+            if view:
+                settings = view.settings()
+                if get_setting(settings, 'colorhighlighter') is False:
+                    return False
 
         return enabled
 
@@ -405,8 +427,10 @@ class ColorHighlighterEnableCommand(ColorHighlighterCommand):
     def is_enabled(self):
         view = self.window.active_view()
 
-        if view and view.settings().get('colorhighlighter') is not False:
-            return False
+        if view:
+            settings = view.settings()
+            if get_setting(settings, 'colorhighlighter') is not False:
+                return False
 
         return True
 
@@ -418,9 +442,10 @@ class ColorHighlighterHexValsAsColorsCommand(ColorHighlighterCommand):
 
         if enabled:
             view = self.window.active_view()
-
-            if view and view.settings().get("colorhighlighter_hex_values") is False:
-                return False
+            if view:
+                settings = view.settings()
+                if get_setting(settings, 'colorhighlighter_hex_values') is False:
+                    return False
 
         return enabled
     is_checked = is_enabled
@@ -433,9 +458,10 @@ class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
 
         if enabled:
             view = self.window.active_view()
-
-            if view and view.settings().get("colorhighlighter_0x_hex_values") is False:
-                return False
+            if view:
+                settings = view.settings()
+                if get_setting(settings, 'colorhighlighter_0x_hex_values') is False:
+                    return False
 
         return enabled
     is_checked = is_enabled
@@ -487,20 +513,23 @@ class HighlightCommand(sublime_plugin.TextCommand):
 
     def toggle_hex_values(self):
         ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set("colorhighlighter_hex_values", not self.view.settings().get("colorhighlighter_hex_values"))
+        settings = self.view.settings()
+        ch_settings.set('colorhighlighter_hex_values', not get_setting(settings, 'colorhighlighter_hex_values'))
         sublime.save_settings(__name__ + '.sublime-settings')
         queue_highlight_colors(self.view, preemptive=True)
 
     def toggle_xhex_values(self):
         ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set("colorhighlighter_0x_hex_values", not self.view.settings().get("colorhighlighter_0x_hex_values"))
+        settings = self.view.settings()
+        ch_settings.set('colorhighlighter_0x_hex_values', not get_setting(settings, 'colorhighlighter_0x_hex_values'))
         sublime.save_settings(__name__ + '.sublime-settings')
         queue_highlight_colors(self.view, preemptive=True)
 
     def reset(self):
         '''Removes existing lint marks and restores user settings.'''
-        erase_highlight_colors(self.view)
-        reload_settings(self.view)
+        view = self.view
+        erase_highlight_colors(view)
+        reload_settings(view.settings())
 
     def on(self):
         '''Turns background linting on.'''
@@ -534,7 +563,7 @@ class HighlightCommand(sublime_plugin.TextCommand):
 class BackgroundColorHighlighter(sublime_plugin.EventListener):
     def on_new(self, view):
         global inited
-        reload_settings(view)
+        reload_settings(view.settings())
         if not inited:
             htmlGen.set_color_scheme(view)
         inited += 1
@@ -544,7 +573,8 @@ class BackgroundColorHighlighter(sublime_plugin.EventListener):
         self.on_new(view)
 
     def on_modified(self, view):
-        if view.settings().get('colorhighlighter') is not True:
+        settings = view.settings()
+        if get_setting(settings, 'colorhighlighter') is not True:
             erase_highlight_colors(view)
             return
 
@@ -570,15 +600,19 @@ class BackgroundColorHighlighter(sublime_plugin.EventListener):
             return
         TIMES[vid] = 100
 
-        reload_settings(view)
+        settings = view.settings()
 
-        if view.settings().get('colorhighlighter') in (False, 'save-only'):
+        reload_settings(settings)
+
+        if get_setting(settings, 'colorhighlighter') in (False, 'save-only'):
             return
 
         queue_highlight_colors(view, preemptive=True, event='on_load')
 
     def on_post_save(self, view):
-        if view.settings().get('colorhighlighter') is False:
+        settings = view.settings()
+
+        if get_setting(settings, 'colorhighlighter') is False:
             return
 
         queue_highlight_colors(view, preemptive=True, event='on_post_save')
@@ -606,11 +640,13 @@ def highlight_colors(view, selection=False, **kwargs):
     if len(view.sel()) > 100:
         selection = False
 
+    settings = view.settings()
+
     words = {}
     found = []
-    _hex_values = bool(view.settings().get('colorhighlighter_hex_values'))
-    _xhex_values = bool(view.settings().get('colorhighlighter_0x_hex_values'))
-    _xterm_color_values = bool(view.settings().get('colorhighlighter_xterm_color_values'))
+    _hex_values = bool(get_setting(settings, 'colorhighlighter_hex_values'))
+    _xhex_values = bool(get_setting(settings, 'colorhighlighter_0x_hex_values'))
+    _xterm_color_values = bool(get_setting(settings, 'colorhighlighter_xterm_color_values'))
     if selection:
         colors_re, colors_re_capture = COLORS_RE[(_hex_values, _xhex_values, _xterm_color_values)]
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
@@ -747,9 +783,11 @@ def get_delay(t, view):
 
     delay = delay or DELAYS[0][1]
 
+    settings = view.settings()
+
     # If the user specifies a delay greater than the built in delay,
     # figure they only want to see marks when idle.
-    minDelay = int(view.settings().get('colorhighlighter_delay', 0) * 1000)
+    minDelay = int(get_setting(settings, 'colorhighlighter_delay') * 1000)
 
     return (minDelay, minDelay) if minDelay > delay[1] else delay
 
