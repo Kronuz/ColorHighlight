@@ -287,14 +287,15 @@ class HtmlGen:
             log("No backup :(")
 
     def set_color_scheme(self, view):
-        cs = view.settings().get('color_scheme')
+        settings = view.settings()
+        cs = settings.get('color_scheme')
         if cs != self.color_scheme:
             color_scheme_path = self.color_scheme_path(view)
             if color_scheme_path:
                 packages_path, cs = color_scheme_path
                 cont = self.get_color_scheme(packages_path, cs)
                 self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
-            self.color_scheme = view.settings().get('color_scheme')
+            self.color_scheme = settings.get('color_scheme')
             self.need_backup = True
 
     def change_color_scheme(self, view):
