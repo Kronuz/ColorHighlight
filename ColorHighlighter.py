@@ -350,7 +350,7 @@ def reload_settings(settings):
         settings.set('colorhighlighter_hex_values', True)
 
     if not settings.has('colorhighlighter_xterm_color_values'):
-        settings.set('colorhighlighter_xterm_color_values', True)
+        settings.set('colorhighlighter_xterm_color_values', False)
 
     if not settings.has('colorhighlighter_delay'):
         settings.set('colorhighlighter_delay', 0)
