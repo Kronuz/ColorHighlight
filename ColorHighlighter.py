@@ -140,17 +140,15 @@ class HtmlGen:
     gen_string = """
         <dict>
             <key>name</key>
-            <string>%s</string>
+            <string>{name}</string>
             <key>scope</key>
-            <string>%s</string>
+            <string>{scope}</string>
             <key>settings</key>
             <dict>
                 <key>background</key>
-                <string>%s</string>
-                <key>caret</key>
-                <string>%s</string>
+                <string>{background}</string>
                 <key>foreground</key>
-                <string>%s</string>
+                <string>{foreground}</string>
             </dict>
         </dict>
 """
@@ -193,13 +191,12 @@ class HtmlGen:
             res = sublime.load_resource(rf)
         return res
 
-    def get_y(self, col):
-        return (0.3 * int(col[1:3], 16) + 0.59 * int(col[3:5], 16) + 0.11 * int(col[5:7], 16)) * (int(col[7:9], 16) / 255.0)
-
-    def get_fg_col(self, col):
-        if self.get_y(col) > 255.0 / 2:
-            return '#000000FF'
-        return '#FFFFFFFF'
+    def get_inv_col(self, col):
+        # [https://stackoverflow.com/a/35970186]
+        r = int(col[1:3], 16)
+        g = int(col[3:5], 16)
+        b = int(col[7:9], 16)
+        return '#222222FF' if (r * 0.299 + g * 0.587 + b * 0.114) > 186 else '#DDDDDDFF'
 
     def region_name(self, s):
         return self.prefix + s[1:]
@@ -255,8 +252,13 @@ class HtmlGen:
         string = ""
         for col, name in self.colors.items():
             if col not in current_colors:
-                fg_col = self.get_fg_col(col)
-                string += self.gen_string % (self.name, name, col, fg_col, fg_col)
+                fg_col = self.get_inv_col(col)
+                string += self.gen_string.format(
+                    name=self.name,
+                    scope=name,
+                    foreground=col,
+                    background=fg_col,
+                )
 
         if string:
             # edit cont
