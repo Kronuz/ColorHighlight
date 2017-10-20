@@ -200,7 +200,7 @@ class HtmlGen:
         l = 0.2126 * r + 0.7152 * g + 0.0722 * b
 
         if l < 0.060:
-            return '#66666FF'
+            return '#666666FF'
 
         if l < 0.089:
             return '#888888FF'
