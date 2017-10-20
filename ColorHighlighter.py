@@ -192,11 +192,32 @@ class HtmlGen:
         return res
 
     def get_inv_col(self, col):
-        # [https://stackoverflow.com/a/35970186]
-        r = int(col[1:3], 16)
-        g = int(col[3:5], 16)
-        b = int(col[7:9], 16)
-        return '#222222FF' if (r * 0.299 + g * 0.587 + b * 0.114) > 186 else '#DDDDDDFF'
+        # [https://stackoverflow.com/a/3943023]
+        r = int(col[1:3], 16) / 255.0
+        g = int(col[3:5], 16) / 255.0
+        b = int(col[5:7], 16) / 255.0
+        # a = int(col[7:9], 16) / 255.0
+        l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        if l < 0.060:
+            return '#66666FF'
+
+        if l < 0.089:
+            return '#888888FF'
+
+        if l < 0.179:
+            return '#BBBBBBFF'
+
+        if l < 0.358:
+            return '#EEEEEEFF'
+
+        if l < 0.537:
+            return '#222222FF'
+
+        if l < 0.716:
+            return '#222222FF'
+
+        return '#222222FF'
 
     def region_name(self, s):
         return self.prefix + s[1:]
@@ -256,8 +277,8 @@ class HtmlGen:
                 string += self.gen_string.format(
                     name=self.name,
                     scope=name,
-                    foreground=col,
-                    background=fg_col,
+                    background=col,
+                    foreground=fg_col,
                 )
 
         if string:
