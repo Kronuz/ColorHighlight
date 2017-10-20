@@ -167,7 +167,11 @@ class HtmlGen:
                     col = '#' + col[1] * 2 + col[2] * 2 + col[3] * 2 + col[4] * 2
                 elif len(col) == 7:
                     col += 'FF'
-                return '#%02X%02X%02X%02X' % (int(col[1:3], 16), int(col[3:5], 16), int(col[5:7], 16), int(col[7:9], 16))
+                r = int(col[1:3], 16)
+                g = int(col[3:5], 16)
+                b = int(col[5:7], 16)
+                a = int(col[7:9], 16) or 1  # alpha == 0 doesn't apply alpha in Sublime
+                return '#%02X%02X%02X%02X' % (r, g, b, a)
             except Exception:
                 print("Invalid color: %r" % col)
 
