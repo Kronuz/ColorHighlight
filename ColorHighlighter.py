@@ -191,33 +191,29 @@ class HtmlGen:
             res = sublime.load_resource(rf)
         return res
 
-    def get_inv_col(self, col):
-        # [https://stackoverflow.com/a/3943023]
+    def get_inv_col(self, bg_col, col):
+        br = int(bg_col[1:3], 16) / 255.0
+        bg = int(bg_col[3:5], 16) / 255.0
+        bb = int(bg_col[5:7], 16) / 255.0
+
         r = int(col[1:3], 16) / 255.0
         g = int(col[3:5], 16) / 255.0
         b = int(col[5:7], 16) / 255.0
-        # a = int(col[7:9], 16) / 255.0
+        a = int(col[7:9], 16) / 255.0
+
+        r = br * (1 - a) + r * a
+        g = bg * (1 - a) + g * a
+        b = bb * (1 - a) + b * a
+
+        # [https://stackoverflow.com/a/3943023]
         l = 0.2126 * r + 0.7152 * g + 0.0722 * b
 
-        if l < 0.060:
-            return '#666666FF'
+        if l > 0.5:
+            l -= 0.5
+        else:
+            l += 0.5
 
-        if l < 0.089:
-            return '#888888FF'
-
-        if l < 0.179:
-            return '#BBBBBBFF'
-
-        if l < 0.358:
-            return '#EEEEEEFF'
-
-        if l < 0.537:
-            return '#222222FF'
-
-        if l < 0.716:
-            return '#222222FF'
-
-        return '#222222FF'
+        return '#%sFF' % (('%02X' % (l * 255)) * 3)
 
     def region_name(self, s):
         return self.prefix + s[1:]
@@ -270,10 +266,15 @@ class HtmlGen:
 
         current_colors = set("#%s" % c for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
 
+        if hasattr(view, 'style'):
+            bg_col = view.style()['background']
+        else:
+            bg_col = '#333333FF'
+
         string = ""
         for col, name in self.colors.items():
             if col not in current_colors:
-                fg_col = self.get_inv_col(col)
+                fg_col = self.get_inv_col(bg_col, col)
                 string += self.gen_string.format(
                     name=self.name,
                     scope=name,
