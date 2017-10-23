@@ -209,8 +209,7 @@ class HtmlGen:
         g = bg * (1 - a) + g * a
         b = bb * (1 - a) + b * a
 
-        # [https://stackoverflow.com/a/3943023]
-        l = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        l = (max(r, g, b) + min(r, g, b)) / 2
 
         if l > 0.5:
             l -= 0.5
