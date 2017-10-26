@@ -209,14 +209,18 @@ class HtmlGen:
         g = bg * (1 - a) + g * a
         b = bb * (1 - a) + b * a
 
-        l = (max(r, g, b) + min(r, g, b)) / 2
+        # L = (max(r, g, b) + min(r, g, b)) / 2
+        # Y709 = 0.2126 * r + 0.7152 * g + 0.0722 * b
+        Y601 = 0.299 * r + 0.587 * g + 0.114 * b
 
-        if l >= 0.5:
-            l -= 0.5
+        v = Y601
+
+        if v >= 0.5:
+            v -= 0.5
         else:
-            l += 0.5
+            v += 0.5
 
-        return '#%sFF' % (('%02X' % (l * 255)) * 3)
+        return '#%sFF' % (('%02X' % (v * 255)) * 3)
 
     def region_name(self, s):
         return self.prefix + s[1:]
