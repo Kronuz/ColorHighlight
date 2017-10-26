@@ -211,7 +211,7 @@ class HtmlGen:
 
         l = (max(r, g, b) + min(r, g, b)) / 2
 
-        if l > 0.5:
+        if l >= 0.5:
             l -= 0.5
         else:
             l += 0.5
