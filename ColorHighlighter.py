@@ -1,28 +1,20 @@
 from __future__ import absolute_import
 
+import re
 import time
 import threading
 from functools import partial
 
-import re
-import os
-import string
-
 import sublime
 import sublime_plugin
 
-# TODO: import ColorHighlighter.colors for ST3
-from .colors import names_to_hex, xterm_to_hex
+from .settings import Settings
+from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex
 
-version = "3.1"
+NAME = "ColorHighlighter"  # SublimeColorizer
+VERSION = "4.0"
 
-# Constants
-hex_digits = string.digits + "ABCDEF"
-
-
-def log(s):
-    # print("[ColorHighlighter]", s)
-    pass
+colorizer = SchemaColorizer()
 
 
 # Color formats:
@@ -88,7 +80,7 @@ def regexp_factory(names, xterm):
         _ALL_HEX_COLORS_CAPTURE,
     )
 
-all_names_to_hex = dict(names_to_hex, **xterm_to_hex)
+
 _NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, None)
 __NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE, __XHEX_COLORS, __XHEX_COLORS_CAPTURE, __HEX_COLORS, __HEX_COLORS_CAPTURE, __ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, xterm_to_hex)
 COLORS_REGEX = {
@@ -127,274 +119,7 @@ def tohex(r, g, b, a):
     return '#%s%s%s%s' % (sr, sg, sb, sa)
 
 
-class HtmlGen:
-    name = "Color"
-    prefix = "col_"
-    backup_ext = ".chback"
-
-    colors = {}
-    color_scheme = None
-    need_upd = False
-    need_restore = False
-    need_backup = False
-    gen_string = """
-        <dict>
-            <key>name</key>
-            <string>{name}</string>
-            <key>scope</key>
-            <string>{scope}</string>
-            <key>settings</key>
-            <dict>
-                <key>background</key>
-                <string>{background}</string>
-                <key>foreground</key>
-                <string>{foreground}</string>
-            </dict>
-        </dict>
-"""
-
-    def normalize(self, col):
-        if col:
-            col = all_names_to_hex.get(col.lower(), col.upper())
-            if col.startswith('0X'):
-                col = '#' + col[2:]
-            try:
-                if col[0] != '#':
-                    raise ValueError
-                if len(col) == 4:
-                    col = '#' + col[1] * 2 + col[2] * 2 + col[3] * 2 + 'FF'
-                elif len(col) == 5:
-                    col = '#' + col[1] * 2 + col[2] * 2 + col[3] * 2 + col[4] * 2
-                elif len(col) == 7:
-                    col += 'FF'
-                r = int(col[1:3], 16)
-                g = int(col[3:5], 16)
-                b = int(col[5:7], 16)
-                a = int(col[7:9], 16) or 1  # alpha == 0 doesn't apply alpha in Sublime
-                return '#%02X%02X%02X%02X' % (r, g, b, a)
-            except Exception:
-                print("Invalid color: %r" % col)
-
-    def write_file(self, pp, fl, s):
-        rf = pp + fl
-        dn = os.path.dirname(rf)
-        if not os.path.exists(dn):
-            os.makedirs(dn)
-        f = open(rf, 'w')
-        f.write(s)
-        f.close()
-
-    def read_file(self, pp, fl):
-        rf = pp + fl
-        if os.path.exists(rf):
-            f = open(rf, 'r')
-            res = f.read()
-            f.close()
-        else:
-            rf = 'Packages' + fl
-            res = sublime.load_resource(rf)
-        return res
-
-    def get_inv_col(self, bg_col, col):
-        br = int(bg_col[1:3], 16) / 255.0
-        bg = int(bg_col[3:5], 16) / 255.0
-        bb = int(bg_col[5:7], 16) / 255.0
-
-        r = int(col[1:3], 16) / 255.0
-        g = int(col[3:5], 16) / 255.0
-        b = int(col[5:7], 16) / 255.0
-        a = int(col[7:9], 16) / 255.0
-
-        r = br * (1 - a) + r * a
-        g = bg * (1 - a) + g * a
-        b = bb * (1 - a) + b * a
-
-        # L = (max(r, g, b) + min(r, g, b)) / 2
-        # Y709 = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        Y601 = 0.299 * r + 0.587 * g + 0.114 * b
-
-        v = Y601
-
-        if v >= 0.5:
-            v -= 0.5
-        else:
-            v += 0.5
-
-        return '#%sFF' % (('%02X' % (v * 255)) * 3)
-
-    def region_name(self, s):
-        return self.prefix + s[1:]
-
-    def add_color(self, col):
-        col = self.normalize(col)
-        if not col:
-            return
-        if col not in self.colors:
-            self.colors[col] = self.region_name(col)
-            self.need_upd = True
-        return self.colors[col]
-
-    def need_update(self):
-        return self.need_upd
-
-    def color_scheme_path(self, view):
-        packages_path = sublime.packages_path()
-        cs = self.color_scheme
-        if cs is None:
-            self.color_scheme = view.settings().get('color_scheme')
-            cs = self.color_scheme
-        # do not support empty color scheme
-        if not cs:
-            log("Empty scheme")
-            return
-        # extract name
-        cs = cs[cs.find('/'):]
-        return packages_path, cs
-
-    def get_color_scheme(self, packages_path, cs):
-        cont = self.read_file(packages_path, cs)
-        if os.path.exists(packages_path + cs + self.backup_ext):
-            log("Already backuped")
-        else:
-            self.write_file(packages_path, cs + self.backup_ext, cont)  # backup
-            log("Backup done")
-        return cont
-
-    def update(self, view):
-        if not self.need_upd:
-            return
-        self.need_upd = False
-
-        color_scheme_path = self.color_scheme_path(view)
-        if not color_scheme_path:
-            return
-        packages_path, cs = color_scheme_path
-        cont = self.get_color_scheme(packages_path, cs)
-
-        current_colors = set("#%s" % c for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
-
-        if hasattr(view, 'style'):
-            bg_col = view.style()['background']
-        else:
-            bg_col = '#333333FF'
-
-        string = ""
-        for col, name in self.colors.items():
-            if col not in current_colors:
-                fg_col = self.get_inv_col(bg_col, col)
-                string += self.gen_string.format(
-                    name=self.name,
-                    scope=name,
-                    background=col,
-                    foreground=fg_col,
-                )
-
-        if string:
-            # edit cont
-            n = cont.find("<array>") + len("<array>")
-            try:
-                cont = cont[:n] + string + cont[n:]
-            except UnicodeDecodeError:
-                cont = cont[:n] + string.encode("utf-8") + cont[n:]
-
-            self.write_file(packages_path, cs, cont)
-            self.need_restore = True
-            log("Updated")
-
-    def restore_color_scheme(self):
-        if not self.need_restore:
-            return
-        self.need_restore = False
-        cs = self.color_scheme
-        # do not support empty color scheme
-        if not cs:
-            log("Empty scheme, can't restore")
-            return
-        # extract name
-        cs = cs[cs.find('/'):]
-        packages_path = sublime.packages_path()
-        if os.path.exists(packages_path + cs + self.backup_ext):
-            log("Starting restore scheme: " + cs)
-            # TODO: move to other thread
-            self.write_file(packages_path, cs, self.read_file(packages_path, cs + self.backup_ext))
-            self.colors = {}
-            log("Restore done.")
-        else:
-            log("No backup :(")
-
-    def set_color_scheme(self, view):
-        settings = view.settings()
-        cs = settings.get('color_scheme')
-        if cs != self.color_scheme:
-            color_scheme_path = self.color_scheme_path(view)
-            if color_scheme_path:
-                packages_path, cs = color_scheme_path
-                cont = self.get_color_scheme(packages_path, cs)
-                self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
-            self.color_scheme = settings.get('color_scheme')
-            self.need_backup = True
-
-    def change_color_scheme(self, view):
-        cs = view.settings().get('color_scheme')
-        if cs and cs != self.color_scheme:
-            log("Color scheme changed %s -> %s" % (self.color_scheme, cs))
-            self.restore_color_scheme()
-            self.set_color_scheme(view)
-            self.update(view)
-
-htmlGen = HtmlGen()
-
-
-ALL_SETTINGS = [
-    'colorhighlighter',
-    'colorhighlighter_0x_hex_values',
-    'colorhighlighter_hex_values',
-    'colorhighlighter_xterm_color_values',
-    'colorhighlighter_delay',
-]
-
-
-def settings_changed():
-    for window in sublime.windows():
-        for view in window.views():
-            reload_settings(view.settings())
-
-
-def reload_settings(settings):
-    '''Restores user settings.'''
-    settings_name = 'ColorHighlighter'
-    global_settings = sublime.load_settings(settings_name + '.sublime-settings')
-    global_settings.clear_on_change(settings_name)
-    global_settings.add_on_change(settings_name, settings_changed)
-
-    for setting in ALL_SETTINGS:
-        if global_settings.has(setting):
-            settings.set(setting, global_settings.get(setting))
-
-    if not settings.has('colorhighlighter'):
-        settings.set('colorhighlighter', True)
-
-    if not settings.has('colorhighlighter_0x_hex_values'):
-        settings.set('colorhighlighter_0x_hex_values', True)
-
-    if not settings.has('colorhighlighter_hex_values'):
-        settings.set('colorhighlighter_hex_values', True)
-
-    if not settings.has('colorhighlighter_xterm_color_values'):
-        settings.set('colorhighlighter_xterm_color_values', False)
-
-    if not settings.has('colorhighlighter_delay'):
-        settings.set('colorhighlighter_delay', 0)
-
-
-def get_setting(settings, name):
-    if not settings.has(name):
-        reload_settings(settings)
-    return settings.get(name)
-
-
 # Commands
-
 
 # treat hex vals as colors
 class ColorHighlighterCommand(sublime_plugin.WindowCommand):
@@ -405,11 +130,7 @@ class ColorHighlighterCommand(sublime_plugin.WindowCommand):
             view.run_command('highlight', action)
 
     def is_enabled(self):
-        view = self.window.active_view()
-        if view:
-            settings = view.settings()
-            return bool(get_setting(settings, 'colorhighlighter'))
-        return False
+        return bool(settings.get('highlight'))
 
 
 class ColorHighlighterHighlightCommand(ColorHighlighterCommand):
@@ -422,11 +143,8 @@ class ColorHighlighterEnableLoadSaveCommand(ColorHighlighterCommand):
         enabled = super(ColorHighlighterEnableLoadSaveCommand, self).is_enabled()
 
         if enabled:
-            view = self.window.active_view()
-            if view:
-                settings = view.settings()
-                if get_setting(settings, 'colorhighlighter') == 'load-save':
-                    return False
+            if settings.get('highlight') == 'load-save':
+                return False
 
         return enabled
 
@@ -436,11 +154,8 @@ class ColorHighlighterEnableSaveOnlyCommand(ColorHighlighterCommand):
         enabled = super(ColorHighlighterEnableSaveOnlyCommand, self).is_enabled()
 
         if enabled:
-            view = self.window.active_view()
-            if view:
-                settings = view.settings()
-                if get_setting(settings, 'colorhighlighter') == 'save-only':
-                    return False
+            if settings.get('highlight') == 'save-only':
+                return False
 
         return enabled
 
@@ -450,11 +165,8 @@ class ColorHighlighterDisableCommand(ColorHighlighterCommand):
         enabled = super(ColorHighlighterDisableCommand, self).is_enabled()
 
         if enabled:
-            view = self.window.active_view()
-            if view:
-                settings = view.settings()
-                if get_setting(settings, 'colorhighlighter') is False:
-                    return False
+            if settings.get('highlight') is False:
+                return False
 
         return enabled
 
@@ -464,8 +176,7 @@ class ColorHighlighterEnableCommand(ColorHighlighterCommand):
         view = self.window.active_view()
 
         if view:
-            settings = view.settings()
-            if get_setting(settings, 'colorhighlighter') is not False:
+            if settings.get('highlight') is not False:
                 return False
 
         return True
@@ -477,11 +188,8 @@ class ColorHighlighterHexValsAsColorsCommand(ColorHighlighterCommand):
         enabled = super(ColorHighlighterHexValsAsColorsCommand, self).is_enabled()
 
         if enabled:
-            view = self.window.active_view()
-            if view:
-                settings = view.settings()
-                if get_setting(settings, 'colorhighlighter_hex_values') is False:
-                    return False
+            if settings.get('hex_values') is False:
+                return False
 
         return enabled
     is_checked = is_enabled
@@ -493,11 +201,8 @@ class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
         enabled = super(ColorHighlighterXHexValsAsColorsCommand, self).is_enabled()
 
         if enabled:
-            view = self.window.active_view()
-            if view:
-                settings = view.settings()
-                if get_setting(settings, 'colorhighlighter_0x_hex_values') is False:
-                    return False
+            if settings.get('0x_hex_values') is False:
+                return False
 
         return enabled
     is_checked = is_enabled
@@ -506,7 +211,8 @@ class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
 # command to restore color scheme
 class RestoreColorSchemeCommand(sublime_plugin.TextCommand):
     def run(self, edit):
-        htmlGen.restore_color_scheme()
+        colorizer.restore_color_scheme()
+
 
 all_regs = []
 inited = 0
@@ -548,70 +254,59 @@ class HighlightCommand(sublime_plugin.TextCommand):
             highlight_colors(self.view)
 
     def toggle_hex_values(self):
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        settings = self.view.settings()
-        ch_settings.set('colorhighlighter_hex_values', not get_setting(settings, 'colorhighlighter_hex_values'))
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('hex_values', not settings.get('hex_values'), changed=True)
+        settings.save()
         queue_highlight_colors(self.view, preemptive=True)
 
     def toggle_xhex_values(self):
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        settings = self.view.settings()
-        ch_settings.set('colorhighlighter_0x_hex_values', not get_setting(settings, 'colorhighlighter_0x_hex_values'))
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('0x_hex_values', not settings.get('0x_hex_values'), changed=True)
+        settings.save()
         queue_highlight_colors(self.view, preemptive=True)
 
     def reset(self):
         '''Removes existing lint marks and restores user settings.'''
         view = self.view
         erase_highlight_colors(view)
-        reload_settings(view.settings())
         queue_highlight_colors(self.view, preemptive=True)
 
     def on(self):
         '''Turns background linting on.'''
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set('colorhighlighter', True)
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('highlight', True)
+        settings.save()
         queue_highlight_colors(self.view, preemptive=True)
 
     def enable_load_save(self):
         '''Turns load-save linting on.'''
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set('colorhighlighter', 'load-save')
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('highlight', 'load-save')
+        settings.save()
         erase_highlight_colors(self.view)
 
     def enable_save_only(self):
         '''Turns save-only linting on.'''
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set('colorhighlighter', 'save-only')
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('highlight', 'save-only')
+        settings.save()
         erase_highlight_colors(self.view)
 
     def off(self):
         '''Turns background linting off.'''
-        ch_settings = sublime.load_settings(__name__ + '.sublime-settings')
-        ch_settings.set('colorhighlighter', False)
-        sublime.save_settings(__name__ + '.sublime-settings')
+        settings.set('highlight', False)
+        settings.save()
         erase_highlight_colors(self.view)
 
 
 class BackgroundColorHighlighter(sublime_plugin.EventListener):
     def on_new(self, view):
         global inited
-        reload_settings(view.settings())
         if not inited:
-            htmlGen.set_color_scheme(view)
+            colorizer.set_color_scheme(view)
         inited += 1
-        view.settings().add_on_change('color_scheme', lambda self=self, view=view: htmlGen.change_color_scheme(view))
+        view.settings().add_on_change('color_scheme', lambda self=self, view=view: colorizer.change_color_scheme(view))
 
     def on_clone(self, view):
         self.on_new(view)
 
     def on_modified(self, view):
-        settings = view.settings()
-        if get_setting(settings, 'colorhighlighter') is not True:
+        if settings.get('highlight') is not True:
             erase_highlight_colors(view)
             return
 
@@ -627,7 +322,7 @@ class BackgroundColorHighlighter(sublime_plugin.EventListener):
             del COLOR_HIGHLIGHTS[vid]
         inited -= 1
         # if inited <= 0:
-        #     htmlGen.restore_color_scheme()
+        #     colorizer.restore_color_scheme()
 
     def on_activated(self, view):
         if view.file_name() is None:
@@ -637,19 +332,13 @@ class BackgroundColorHighlighter(sublime_plugin.EventListener):
             return
         TIMES[vid] = 100
 
-        settings = view.settings()
-
-        reload_settings(settings)
-
-        if get_setting(settings, 'colorhighlighter') in (False, 'save-only'):
+        if settings.get('highlight') in (False, 'save-only'):
             return
 
         queue_highlight_colors(view, preemptive=True, event='on_load')
 
     def on_post_save(self, view):
-        settings = view.settings()
-
-        if get_setting(settings, 'colorhighlighter') is False:
+        if settings.get('highlight') is False:
             return
 
         queue_highlight_colors(view, preemptive=True, event='on_post_save')
@@ -677,13 +366,11 @@ def highlight_colors(view, selection=False, **kwargs):
     if len(view.sel()) > 100:
         selection = False
 
-    settings = view.settings()
-
     words = {}
     found = []
-    _hex_values = bool(get_setting(settings, 'colorhighlighter_hex_values'))
-    _xhex_values = bool(get_setting(settings, 'colorhighlighter_0x_hex_values'))
-    _xterm_color_values = bool(get_setting(settings, 'colorhighlighter_xterm_color_values'))
+    _hex_values = bool(settings.get('hex_values'))
+    _xhex_values = bool(settings.get('0x_hex_values'))
+    _xterm_color_values = bool(settings.get('xterm_color_values'))
     if selection:
         colors_re, colors_re_capture = COLORS_RE[(_hex_values, _xhex_values, _xterm_color_values)]
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
@@ -751,14 +438,14 @@ def highlight_colors(view, selection=False, **kwargs):
             else:
                 a = 1.0
             col = tohex(col0, None, None, a)
-        name = htmlGen.add_color(col)
+        name = colorizer.add_color(col)
         if name not in words:
             words[name] = [ranges[i]]
         else:
             words[name].append(ranges[i])
 
-    if htmlGen.need_update():
-        htmlGen.update(view)
+    if colorizer.need_update():
+        colorizer.update(view)
 
     if selection:
         if vid not in COLOR_HIGHLIGHTS:
@@ -821,11 +508,9 @@ def get_delay(t, view):
 
     delay = delay or DELAYS[0][1]
 
-    settings = view.settings()
-
     # If the user specifies a delay greater than the built in delay,
     # figure they only want to see marks when idle.
-    minDelay = int(get_setting(settings, 'colorhighlighter_delay') * 1000)
+    minDelay = int(settings.get('delay', 0) * 1000)
 
     return (minDelay, minDelay) if minDelay > delay[1] else delay
 
@@ -880,6 +565,7 @@ def background_color_highlighter():
 
     for callback in callbacks:
         sublime.set_timeout(callback, 0)
+
 
 ################################################################################
 # Queue dispatcher system:
@@ -995,4 +681,26 @@ __active_color_highlighter_thread = threading.Thread(target=queue_loop, name=que
 __active_color_highlighter_thread.__semaphore_ = __semaphore_
 __active_color_highlighter_thread.start()
 
+
 ################################################################################
+# Initialize settings and main objects only once
+class ColorHighlighterSettings(Settings):
+    pass
+
+
+if 'settings' not in globals():
+    settings = ColorHighlighterSettings(NAME)
+
+
+################################################################################
+
+def plugin_loaded():
+    settings.load()
+
+
+# ST3 features a plugin_loaded hook which is called when ST's API is ready.
+#
+# We must therefore call our init callback manually on ST2. It must be the last
+# thing in this plugin (thanks, beloved contributors!).
+if int(sublime.version()) < 3000:
+    plugin_loaded()

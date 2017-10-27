@@ -1,5 +1,20 @@
 [
     {
+        "caption": "Preferences: ColorHighlighter Settings – Default",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/ColorHighlighter/ColorHighlighter.sublime-settings"
+        }
+    },
+    {
+        "caption": "Preferences: ColorHighlighter Settings – User",
+        "command": "open_file", "args":
+        {
+            "file": "${packages}/User/ColorHighlighter.sublime-settings"
+        }
+    },
+
+    {
         "caption": "ColorHighlighter: Color Highlight Current File",
         "command": "color_highlighter_highlight",
         "args": {"action": "highlight"}
