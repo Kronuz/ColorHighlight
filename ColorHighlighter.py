@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
 import re
+import os
 import time
+import zlib
+import struct
 import threading
 from functools import partial
 
@@ -117,6 +120,51 @@ def tohex(r, g, b, a):
     if len(sa) == 1:
         sa = '0' + sa
     return '#%s%s%s%s' % (sr, sg, sb, sa)
+
+
+PNG_RE = re.compile(rb'\x1f\x2f\x3f|\x4f\x5f\x6f')
+PNG_HEAD = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00 \x00\x00\x00 \x08\x06\x00\x00\x00szz\xf4'
+PNG_DATA = zlib.decompress(b'x\x9c\xed\xd6\xc1\r\xc3 \x0c@QX!g\xa4\x8c\xd0\x11:BF\xe8\x01q\xee\x1c\xdd\x82e2\x00\xb30\x00\xb5U#U\x11\x85`\xac\xe6\xc2\xe1_\xc3K\x93\xd8U)%ue\x97\x1e>\x01\x13P\x05\xac\xb7{)\x03Y\xc8C\x01\x8a\xdb\xe3\x89\x05\xc8C\x162\x90:6\n\xd0\x90\x83v(}\x07\x17?\xb6C\x0e\xd2R\x80\x05z\x1d\x0f\xae\x00r/h\x19\x05\xe8\xda\xe1\r@F\xe8\x11\x80\xab\x1d~\x02\x90\xe8q\xb0\x00\xa6\xf4\xcc\x19\x00|\'\x0c\x07`[\x87\x9f\x04`\x96\x03\xf0\x82\x00\xcf\x01\x04A@\xe0\x00\xa2  v\x03h\xc25/~\x06\x897\xc3\x01\x04A@\xff#\xa0\xd9.\x05\xe8\x7f\ti\xb1H\x01\xfa?\xc3\xed\xb3\xd5v\x01\x00\x0e\xb3\xfeADK\xc4\t\x00p\x9c\xf7\x8fb\x02hZ(\\\x00.2=\x02\xc0\x96\x1a\xa2q8\xaer5\n\xc8\xbf\x84+\xbd\x13?\x9e\xb9\xcbw.\x05\xc8\x19\xfa:<\xcd\x89H\x133\xd0\xee\xc0\x05f\xd6\xc2\xdf\xb9n\xc0\xbf\x9a\x80\t\xb8\x1c\xf0\x06-\x9f\xcd\xf4')
+PNG_END = b'\x00\x00\x00\x00IEND\xaeB`\x82'
+
+
+def toicon(name, light=True):
+    base_path = os.path.join(sublime.packages_path(), 'User', '%s.cache' % NAME)
+    if not os.path.exists(base_path):
+        os.mkdir(base_path)
+    icon_path = os.path.join(base_path, name + '.png')
+    if not os.path.exists(icon_path):
+        r = int(name[4:6], 16)
+        g = int(name[6:8], 16)
+        b = int(name[8:10], 16)
+        a = int(name[10:12] or 'ff', 16) / 255.0
+        # print("r={} g={} b={} a={}".format(r, g, b, a))
+        if light:
+            x = 0xff * (1 - a)
+            y = 0xcc * (1 - a)
+        else:
+            x = 0x99 * (1 - a)
+            y = 0x66 * (1 - a)
+        r *= a
+        g *= a
+        b *= a
+        # print("x(r={} g={} b={}), y(r={} g={} b={})".format(int(r + x), int(g + x), int(b + x), int(r + y), int(g + y), int(b + y)))
+        I1 = lambda v: struct.pack("!B", v & (2**8 - 1))
+        I4 = lambda v: struct.pack("!I", v & (2**32 - 1))
+        png = PNG_HEAD
+        col_map = {
+            b'\x1f\x2f\x3f': I1(int(r + x)) + I1(int(g + x)) + I1(int(b + x)),
+            b'\x4f\x5f\x6f': I1(int(r + y)) + I1(int(g + y)) + I1(int(b + y)),
+        }
+        data = PNG_RE.sub(lambda m: col_map[m.group(0)], PNG_DATA)
+        compressed = zlib.compress(data)
+        idat = b'IDAT' + compressed
+        png += I4(len(compressed)) + idat + I4(zlib.crc32(idat))
+        png += PNG_END
+        with open(icon_path, 'wb') as fp:
+            fp.write(png)
+    relative_icon_path = os.path.relpath(icon_path, os.path.dirname(sublime.packages_path()))
+    return relative_icon_path
 
 
 # Commands
@@ -473,7 +521,7 @@ def highlight_colors(view, selection=False, **kwargs):
     all_regs = COLOR_HIGHLIGHTS[vid]
 
     for name, w in words.items():
-        view.add_regions(name, w, name, '', sublime.PERSISTENT)
+        view.add_regions(name, w, name, toicon(name), sublime.PERSISTENT)
         all_regs.add(name)
 
     TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to color highlight
