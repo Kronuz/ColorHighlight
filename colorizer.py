@@ -1,5 +1,7 @@
 import os
 import re
+import json
+from collections import OrderedDict
 
 import sublime
 
@@ -139,13 +141,13 @@ class SchemaColorizer(object):
         return packages_path, cs
 
     def get_color_scheme(self, packages_path, cs):
-        cont = self.read_file(packages_path, cs)
+        content = self.read_file(packages_path, cs)
         if os.path.exists(packages_path + cs + self.backup_ext):
             log("Already backuped")
         else:
-            self.write_file(packages_path, cs + self.backup_ext, cont)  # backup
+            self.write_file(packages_path, cs + self.backup_ext, content)  # backup
             log("Backup done")
-        return cont
+        return content
 
     def update(self, view):
         if not self.need_upd:
@@ -156,35 +158,44 @@ class SchemaColorizer(object):
         if not color_scheme_path:
             return
         packages_path, cs = color_scheme_path
-        cont = self.get_color_scheme(packages_path, cs)
+        content = self.get_color_scheme(packages_path, cs)
 
-        current_colors = set("#%s" % c for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
+        current_colors = set("#%s" % c.upper() for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
 
         if hasattr(view, 'style'):
             bg_col = view.style()['background']
         else:
             bg_col = '#333333FF'
 
-        string = ""
+        rules = []
         for col, name in self.colors.items():
             if col not in current_colors:
                 fg_col = self.get_inv_col(bg_col, col)
-                string += self.gen_string.format(
-                    name=self.name,
-                    scope=name,
-                    background=col,
-                    foreground=fg_col,
-                )
+                rules.append({
+                    "name": self.name,
+                    "scope": name,
+                    "background": col,
+                    "foreground": fg_col,
+                })
 
-        if string:
-            # edit cont
-            n = cont.find("<array>") + len("<array>")
+        if rules:
             try:
-                cont = cont[:n] + string + cont[n:]
-            except UnicodeDecodeError:
-                cont = cont[:n] + string.encode("utf-8") + cont[n:]
+                json_content = json.loads(content, object_pairs_hook=OrderedDict)
+                json_content['rules'].extend(rules)
+                content = json.dumps(json_content, indent=4)
+            except ValueError:
+                string = ""
+                for rule in rules:
+                    string += self.gen_string.format(**rule)
+                if string:
+                    # edit content
+                    n = content.find("<array>") + len("<array>")
+                    try:
+                        content = content[:n] + string + content[n:]
+                    except UnicodeDecodeError:
+                        content = content[:n] + string.encode("utf-8") + content[n:]
 
-            self.write_file(packages_path, cs, cont)
+            self.write_file(packages_path, cs, content)
             self.need_restore = True
             log("Updated")
 
@@ -216,8 +227,8 @@ class SchemaColorizer(object):
             color_scheme_path = self.color_scheme_path(view)
             if color_scheme_path:
                 packages_path, cs = color_scheme_path
-                cont = self.get_color_scheme(packages_path, cs)
-                self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'<string>%s(.*?)</string>' % self.prefix, cont, re.DOTALL))
+                content = self.get_color_scheme(packages_path, cs)
+                self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
             self.color_scheme = settings.get('color_scheme')
             self.need_backup = True
 
