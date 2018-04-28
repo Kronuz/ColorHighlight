@@ -85,13 +85,13 @@ class SchemaColorizer(object):
         return res
 
     def get_inv_col(self, bg_col, col):
-        br = int(bg_col[1:3], 16) / 255.0
-        bg = int(bg_col[3:5], 16) / 255.0
-        bb = int(bg_col[5:7], 16) / 255.0
+        br = int(bg_col[1:3], 16)
+        bg = int(bg_col[3:5], 16)
+        bb = int(bg_col[5:7], 16)
 
-        r = int(col[1:3], 16) / 255.0
-        g = int(col[3:5], 16) / 255.0
-        b = int(col[5:7], 16) / 255.0
+        r = int(col[1:3], 16)
+        g = int(col[3:5], 16)
+        b = int(col[5:7], 16)
         a = int(col[7:9], 16) / 255.0
 
         r = br * (1 - a) + r * a
@@ -100,16 +100,16 @@ class SchemaColorizer(object):
 
         # L = (max(r, g, b) + min(r, g, b)) / 2
         # Y709 = 0.2126 * r + 0.7152 * g + 0.0722 * b
-        Y601 = 0.299 * r + 0.587 * g + 0.114 * b
+        Y601 = ((r * 299) + (g * 587) + (b * 114)) / 1000
 
         v = Y601
 
-        if v >= 0.5:
-            v -= 0.5
+        if v >= 128:
+            v -= 128
         else:
-            v += 0.5
+            v += 128
 
-        return '#%sFF' % (('%02X' % (v * 255)) * 3)
+        return '#%sFF' % (('%02X' % v) * 3)
 
     def region_name(self, s):
         return self.prefix + s[1:]
