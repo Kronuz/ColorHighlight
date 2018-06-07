@@ -6,6 +6,7 @@ import time
 import zlib
 import struct
 import threading
+import colorsys
 from functools import partial
 
 import sublime
@@ -32,6 +33,8 @@ colorizer = SchemaColorizer()
 # black
 # rgba(white, 20%)
 # 0xFFFFFF
+# hsl(360, 0%, 50%)
+# hsla(360, 0%, 50%, 0.5)
 # \033[38;15m
 
 
@@ -41,36 +44,32 @@ def regexp_factory(names, xterm):
         _COLORS += r'|(?<=[;])%s(?=[;m])' % r'(?=[;m])|(?<=[;])'.join(xterm.keys())
 
     _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
-    _ALL_HEX_COLORS = r'%s|%s|%s' % (
-        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _ALL_HEX_COLORS,
-        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+    _ALL_HEX_COLORS = r'%s|%s' % (
+        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _ALL_HEX_COLORS,
         r'(%s)' % _ALL_HEX_COLORS,
     )
-    _ALL_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _ALL_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _XHEX_COLORS = r'%s|%s' % (_COLORS, r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
-    _XHEX_COLORS = r'%s|%s|%s' % (
-        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _XHEX_COLORS,
-        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+    _XHEX_COLORS = r'%s|%s' % (
+        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _XHEX_COLORS,
         r'(%s)' % _XHEX_COLORS,
     )
-    _XHEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _XHEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _HEX_COLORS = r'%s|%s' % (_COLORS, r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
-    _HEX_COLORS = r'%s|%s|%s' % (
-        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _HEX_COLORS,
-        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+    _HEX_COLORS = r'%s|%s' % (
+        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _HEX_COLORS,
         r'(%s)' % _HEX_COLORS,
     )
-    _HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _NO_HEX_COLORS = r'%s' % (_COLORS,)
-    _NO_HEX_COLORS = r'%s|%s|%s' % (
-        r'rgba\((?:([0-9]+),\s*([0-9]+),\s*([0-9]+)|(%s)),\s*((?:[0-9]*\.\d+|[0-9]+)?%%?)\)' % _NO_HEX_COLORS,
-        r'rgb\(([0-9]+),\s*([0-9]+),\s*([0-9]+)\)',
+    _NO_HEX_COLORS = r'%s|%s' % (
+        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _NO_HEX_COLORS,
         r'(%s)' % _NO_HEX_COLORS,
     )
-    _NO_HEX_COLORS_CAPTURE = r'\1\4\6\9,\2\7,\3\8,\5'
+    _NO_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     return (
         _NO_HEX_COLORS,
@@ -435,9 +434,41 @@ def highlight_colors(view, selection=False, **kwargs):
         ranges = view.find_all(colors_re, 0, colors_re_capture, found)
 
     for i, col in enumerate(found):
+        mode, _, col = col.partition('|')
         col = col.rstrip(',')
         col = col.split(',')
-        if len(col) == 1:
+        if mode.startswith('hsl'):
+            if len(col) == 1:
+                continue
+            elif col[1] and col[2]:
+                # In the form of hsl(360, 100%, 100%) or hsla(360, 100%, 100%, 1.0):
+                h = float(int(col[0]) % 360) / 360.0
+                if col[1].endswith('%'):
+                    s = float(col[1][:-1]) / 100.0
+                else:
+                    s = float(col[1])
+                if s > 1.0:
+                    continue
+                if col[2].endswith('%'):
+                    l = float(col[2][:-1]) / 100.0
+                else:
+                    l = float(col[2])
+                if l > 1.0:
+                    continue
+                if len(col) == 4:
+                    if col[3].endswith('%'):
+                        a = float(col[3][:-1]) / 100.0
+                    else:
+                        a = float(col[3])
+                    if a > 1.0:
+                        continue
+                else:
+                    a = 1.0
+                r, g, b = colorsys.hls_to_rgb(h, l, s)
+                col = tohex(int(r * 255), int(g * 255), int(b * 255), a)
+            else:
+                continue
+        elif len(col) == 1:
             # In the form of color name black or #FFFFFFFF or 0xFFFFFF:
             col0 = col[0]
             col0 = all_names_to_hex.get(col0.lower(), col0.upper())

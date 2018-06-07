@@ -62,7 +62,7 @@ class SchemaColorizer(object):
                 a = int(col[7:9], 16) or 1  # alpha == 0 doesn't apply alpha in Sublime
                 return '#%02X%02X%02X%02X' % (r, g, b, a)
             except Exception:
-                print("Invalid color: %r" % col)
+                log("Invalid color: %r" % col)
 
     def write_file(self, pp, fl, s):
         rf = pp + fl
