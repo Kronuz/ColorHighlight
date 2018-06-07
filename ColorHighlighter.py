@@ -315,6 +315,7 @@ class HighlightCommand(sublime_plugin.TextCommand):
         view = self.view
         erase_highlight_colors(view)
         queue_highlight_colors(self.view, preemptive=True)
+        colorizer.colors.clear()
 
     def on(self):
         '''Turns background linting on.'''
