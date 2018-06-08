@@ -29,6 +29,15 @@ Those will be shown with colored background and gutter icons when they're found 
 your documents.
 
 
+## Configuration
+
+- Open settings using the command palette:
+  `Preferences: ColorHighlight Settings - User`
+
+- You can disable live highlight directly from the command palette:
+  `ColorHighlight: Disable Color Highlight`
+
+
 ## Donate
 
 [![Click here to lend your support to ColorHighlight and make a donation!](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.me/Kronuz/25)
