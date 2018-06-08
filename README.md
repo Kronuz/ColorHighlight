@@ -1,34 +1,43 @@
-#ColorHighlighter
+# 🎨 Color Highlight
 
-_ColorHighlighter is a simple plugin for the Sublime Text 2, which unobtrusively previews hexadecimal color values by underlaying the selected hex codes._
+Show hexadecimal colorcodes (like "#ffffff", 0xffffff "rgb(255, 255, 255)",
+"white", etc.) with their real color and gutter icons.
 
-**Installation :**
 
-- **_Recommended_** - Using [Sublime Package Control](http://wbond.net/sublime_packages/package_control "Sublime Package Control")
-    - `ctrl+shft+p` then select `Package Control: Install Package`
-    - install `Color Highlighter`
-- Alternatively, download the package from [GitHub](https://github.com/Monnoroch/ColorHighlighter "ColorHighlighter") into your `Packages` folder
+## Installation
 
-**Usage :**
+- **_Recommended_** - Using [Sublime Package Control](https://packagecontrol.io "Sublime Package Control")
+    - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> then select `Package Control: Install Package`
+    - install `Color Highlight`
+- Alternatively, download the package from [GitHub](https://github.com/Kronuz/ColorHighlight "ColorHighlight") into your `Packages` folder.
 
-Just click or move the cursor on the color code e.g. #FFFFFF and it'll be highlighted with its real color.
-Two color representations are currently supported:
+
+## Usage
+
+Supported color representations are:
+
 - Hexademical e.g. #RGB or #RRGGBB or #RRGGBBAA (you can use both upper and lower case letters)
+
 - RBG or RGBA value e.g. rgb(rrr,ggg,bbb) or rgba(rrr,ggg,bbb,a.aaa) with decimal channel values.
 
-!!! NOT IMPLEMENTED !!!
-And two more you can enable in options:
-- Usual hexademical numbers like RRGGBBAA.
 - Hexademical numbers with prefix 0x like 0xRRGGBBAA
 
-Named colors like "green", "black" and many others are also supported.
+- Named colors like "green", "black" and many others are also supported.
 
-Both you can enable or disable from the menu Tools -> Color Highlighter.
 
-**Note :**
-This version is beta and although it works fine, it corrupts color scheme with additional values. The color scheme will still work, but it'll became bigger and bigger. Anyway, you always can restore the original color scheme file from the menu.
+Those will be shown with colored background and gutter icons when they're found in
+your documents.
 
-**TODO :**
-- ST3 support.
-- Highlighting all the colors at once.
-- Run IO operations in another thread.
+
+## Donate
+
+[![Click here to lend your support to ColorHighlight and make a donation!](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.me/Kronuz/25)
+
+
+## License
+
+Copyright (C) 2018 German Mendez Bravo (Kronuz). All rights reserved.
+
+MIT license
+
+This plugin was initially a for of https://github.com/Monnoroch/ColorHighlighter

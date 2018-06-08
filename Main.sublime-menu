@@ -4,31 +4,24 @@
         "children":
         [
             {
-                "caption": "Color Highlighter",
+                "caption": "Color Highlight",
                 "children":
                 [
                     {
-                        "caption": "Color Highlighter",
-                        "command": "color_highlighter",
+                        "caption": "Color Highlight",
+                        "command": "color_highlight",
                         "mnemonic": "C",
                         "checkbox": true
                     },
                     {
                         "caption": "Restore color scheme",
-                        "command": "restore_color_scheme",
+                        "command": "color_highlight_restore",
                         "mnemonic": "S"
                     },
                     {
-                        "command": "hex_vals_as_colors",
-                        "caption": "Hex values as colors",
-                        "mnemonic": "H",
-                        "checkbox": true
-                    },
-                    {
-                        "command": "x_hex_vals_as_colors",
-                        "caption": "0x hex values as colors",
-                        "mnemonic": "X",
-                        "checkbox": true
+                        "caption": "Reset Text Marker",
+                        "command": "text_marker_reset",
+                        "mnemonic": "R"
                     }
                 ]
             }

@@ -15,8 +15,8 @@ import sublime_plugin
 from .settings import Settings
 from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex
 
-NAME = "ColorHighlighter"  # SublimeColorizer
-VERSION = "4.0"
+NAME = "ColorHighlight"
+VERSION = "1.0"
 
 colorizer = SchemaColorizer()
 
@@ -121,7 +121,7 @@ def tohex(r, g, b, a):
     return '#%s%s%s%s' % (sr, sg, sb, sa)
 
 
-PNG_RE = re.compile(rb'\x1f\x2f\x3f|\x4f\x5f\x6f')
+PNG_RE = re.compile(rb'\x1f\x2f\x3f|\x4f\x5f\x6f')  # noqa: E999
 PNG_HEAD = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00 \x00\x00\x00 \x08\x06\x00\x00\x00szz\xf4'
 PNG_DATA = zlib.decompress(b'x\x9c\xed\xd6\xc1\r\xc3 \x0c@QX!g\xa4\x8c\xd0\x11:BF\xe8\x01q\xee\x1c\xdd\x82e2\x00\xb30\x00\xb5U#U\x11\x85`\xac\xe6\xc2\xe1_\xc3K\x93\xd8U)%ue\x97\x1e>\x01\x13P\x05\xac\xb7{)\x03Y\xc8C\x01\x8a\xdb\xe3\x89\x05\xc8C\x162\x90:6\n\xd0\x90\x83v(}\x07\x17?\xb6C\x0e\xd2R\x80\x05z\x1d\x0f\xae\x00r/h\x19\x05\xe8\xda\xe1\r@F\xe8\x11\x80\xab\x1d~\x02\x90\xe8q\xb0\x00\xa6\xf4\xcc\x19\x00|\'\x0c\x07`[\x87\x9f\x04`\x96\x03\xf0\x82\x00\xcf\x01\x04A@\xe0\x00\xa2  v\x03h\xc25/~\x06\x897\xc3\x01\x04A@\xff#\xa0\xd9.\x05\xe8\x7f\ti\xb1H\x01\xfa?\xc3\xed\xb3\xd5v\x01\x00\x0e\xb3\xfeADK\xc4\t\x00p\x9c\xf7\x8fb\x02hZ(\\\x00.2=\x02\xc0\x96\x1a\xa2q8\xaer5\n\xc8\xbf\x84+\xbd\x13?\x9e\xb9\xcbw.\x05\xc8\x19\xfa:<\xcd\x89H\x133\xd0\xee\xc0\x05f\xd6\xc2\xdf\xb9n\xc0\xbf\x9a\x80\t\xb8\x1c\xf0\x06-\x9f\xcd\xf4')
 PNG_END = b'\x00\x00\x00\x00IEND\xaeB`\x82'
@@ -169,7 +169,7 @@ def toicon(name, light=True):
 # Commands
 
 # treat hex vals as colors
-class ColorHighlighterCommand(sublime_plugin.WindowCommand):
+class ColorHighlightCommand(sublime_plugin.WindowCommand):
     def run_(self, edit_token, args={}):
         view = self.window.active_view()
         action = args.get('action', '')
@@ -180,14 +180,14 @@ class ColorHighlighterCommand(sublime_plugin.WindowCommand):
         return bool(settings.get('highlight'))
 
 
-class ColorHighlighterHighlightCommand(ColorHighlighterCommand):
+class ColorHighlightCommand(ColorHighlightCommand):
     def is_enabled(self):
         return True
 
 
-class ColorHighlighterEnableLoadSaveCommand(ColorHighlighterCommand):
+class ColorHighlightEnableLoadSaveCommand(ColorHighlightCommand):
     def is_enabled(self):
-        enabled = super(ColorHighlighterEnableLoadSaveCommand, self).is_enabled()
+        enabled = super(ColorHighlightEnableLoadSaveCommand, self).is_enabled()
 
         if enabled:
             if settings.get('highlight') == 'load-save':
@@ -196,9 +196,9 @@ class ColorHighlighterEnableLoadSaveCommand(ColorHighlighterCommand):
         return enabled
 
 
-class ColorHighlighterEnableSaveOnlyCommand(ColorHighlighterCommand):
+class ColorHighlightEnableSaveOnlyCommand(ColorHighlightCommand):
     def is_enabled(self):
-        enabled = super(ColorHighlighterEnableSaveOnlyCommand, self).is_enabled()
+        enabled = super(ColorHighlightEnableSaveOnlyCommand, self).is_enabled()
 
         if enabled:
             if settings.get('highlight') == 'save-only':
@@ -207,9 +207,9 @@ class ColorHighlighterEnableSaveOnlyCommand(ColorHighlighterCommand):
         return enabled
 
 
-class ColorHighlighterDisableCommand(ColorHighlighterCommand):
+class ColorHighlightDisableCommand(ColorHighlightCommand):
     def is_enabled(self):
-        enabled = super(ColorHighlighterDisableCommand, self).is_enabled()
+        enabled = super(ColorHighlightDisableCommand, self).is_enabled()
 
         if enabled:
             if settings.get('highlight') is False:
@@ -218,7 +218,7 @@ class ColorHighlighterDisableCommand(ColorHighlighterCommand):
         return enabled
 
 
-class ColorHighlighterEnableCommand(ColorHighlighterCommand):
+class ColorHighlightEnableCommand(ColorHighlightCommand):
     def is_enabled(self):
         view = self.window.active_view()
 
@@ -230,9 +230,9 @@ class ColorHighlighterEnableCommand(ColorHighlighterCommand):
 
 
 # treat hex vals as colors
-class ColorHighlighterHexValsAsColorsCommand(ColorHighlighterCommand):
+class ColorHighlightHexValsAsColorsCommand(ColorHighlightCommand):
     def is_enabled(self):
-        enabled = super(ColorHighlighterHexValsAsColorsCommand, self).is_enabled()
+        enabled = super(ColorHighlightHexValsAsColorsCommand, self).is_enabled()
 
         if enabled:
             if settings.get('hex_values') is False:
@@ -243,9 +243,9 @@ class ColorHighlighterHexValsAsColorsCommand(ColorHighlighterCommand):
 
 
 # treat hex vals as colors
-class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
+class ColorHighlightXHexValsAsColorsCommand(ColorHighlightCommand):
     def is_enabled(self):
-        enabled = super(ColorHighlighterXHexValsAsColorsCommand, self).is_enabled()
+        enabled = super(ColorHighlightXHexValsAsColorsCommand, self).is_enabled()
 
         if enabled:
             if settings.get('0x_hex_values') is False:
@@ -256,7 +256,7 @@ class ColorHighlighterXHexValsAsColorsCommand(ColorHighlighterCommand):
 
 
 # command to restore color scheme
-class RestoreColorSchemeCommand(sublime_plugin.TextCommand):
+class ColorHighlightRestoreCommand(sublime_plugin.TextCommand):
     def run(self, edit):
         colorizer.restore_color_scheme()
 
@@ -265,7 +265,7 @@ all_regs = []
 inited = 0
 
 
-class HighlightCommand(sublime_plugin.TextCommand):
+class ColorHighlightCommand(sublime_plugin.TextCommand):
     '''command to interact with linters'''
 
     def __init__(self, view):
@@ -342,7 +342,7 @@ class HighlightCommand(sublime_plugin.TextCommand):
         erase_highlight_colors(self.view)
 
 
-class BackgroundColorHighlighter(sublime_plugin.EventListener):
+class BackgroundColorHighlight(sublime_plugin.EventListener):
     def on_new(self, view):
         global inited
         if not inited:
@@ -395,7 +395,7 @@ class BackgroundColorHighlighter(sublime_plugin.EventListener):
         delay_queue(1000)  # on movement, delay queue (to make movement responsive)
 
 
-TIMES = {}       # collects how long it took the color highlighter to complete
+TIMES = {}       # collects how long it took the color highlight to complete
 COLOR_HIGHLIGHTS = {}  # Highlighted regions
 
 
@@ -451,9 +451,9 @@ def highlight_colors(view, selection=False, **kwargs):
                 if s > 1.0:
                     continue
                 if col[2].endswith('%'):
-                    l = float(col[2][:-1]) / 100.0
+                    l = float(col[2][:-1]) / 100.0  # noqa: E741
                 else:
-                    l = float(col[2])
+                    l = float(col[2])  # noqa: E741
                 if l > 1.0:
                     continue
                 if len(col) == 4:
@@ -563,7 +563,7 @@ def highlight_colors(view, selection=False, **kwargs):
 ################################################################################
 # Queue connection
 
-QUEUE = {}       # views waiting to be processed by color highlighter
+QUEUE = {}       # views waiting to be processed by ColorHighlight
 
 # For snappier color highlighting, different delays are used for different color highlighting times:
 # (color highlighting time, delays)
@@ -617,7 +617,7 @@ def _update_view(view, filename, **kwargs):
 
 
 def queue_highlight_colors(view, timeout=-1, preemptive=False, event=None, **kwargs):
-    '''Put the current view in a queue to be examined by a color highlighter'''
+    '''Put the current view in a queue to be examined by a ColorHighlight'''
 
     if preemptive:
         timeout = busy_timeout = 0
@@ -634,7 +634,7 @@ def _callback(view, filename, kwargs):
     kwargs['callback'](view, filename, **kwargs)
 
 
-def background_color_highlighter():
+def background_color_highlight():
     __lock_.acquire()
 
     try:
@@ -650,13 +650,13 @@ def background_color_highlighter():
 ################################################################################
 # Queue dispatcher system:
 
-queue_dispatcher = background_color_highlighter
-queue_thread_name = 'background color highlighter'
+queue_dispatcher = background_color_highlight
+queue_thread_name = 'background color highlight'
 MAX_DELAY = 10
 
 
 def queue_loop():
-    '''An infinite loop running the color highlighter in a background thread meant to
+    '''An infinite loop running the color highlight in a background thread meant to
        update the view after user modifies it and then does no further
        modifications for some time as to not slow down the UI with color highlighting.'''
     global __signaled_, __signaled_first_
@@ -753,23 +753,25 @@ def queue_finalize(timeout=None):
             __pre_initialized_ = True
             thread.__semaphore_.release()
             thread.join(timeout)
+
+
 queue_finalize()
 
 # Initialize background thread:
 __loop_ = True
-__active_color_highlighter_thread = threading.Thread(target=queue_loop, name=queue_thread_name)
-__active_color_highlighter_thread.__semaphore_ = __semaphore_
-__active_color_highlighter_thread.start()
+__active_color_highlight_thread = threading.Thread(target=queue_loop, name=queue_thread_name)
+__active_color_highlight_thread.__semaphore_ = __semaphore_
+__active_color_highlight_thread.start()
 
 
 ################################################################################
 # Initialize settings and main objects only once
-class ColorHighlighterSettings(Settings):
+class ColorHighlightSettings(Settings):
     pass
 
 
 if 'settings' not in globals():
-    settings = ColorHighlighterSettings(NAME)
+    settings = ColorHighlightSettings(NAME)
 
 
 ################################################################################

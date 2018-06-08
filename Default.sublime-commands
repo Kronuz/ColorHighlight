@@ -1,51 +1,51 @@
 [
     {
-        "caption": "Preferences: ColorHighlighter Settings – Default",
+        "caption": "Preferences: ColorHighlight Settings – Default",
         "command": "open_file", "args":
         {
-            "file": "${packages}/ColorHighlighter/ColorHighlighter.sublime-settings"
+            "file": "${packages}/ColorHighlight/ColorHighlight.sublime-settings"
         }
     },
     {
-        "caption": "Preferences: ColorHighlighter Settings – User",
+        "caption": "Preferences: ColorHighlight Settings – User",
         "command": "open_file", "args":
         {
-            "file": "${packages}/User/ColorHighlighter.sublime-settings"
+            "file": "${packages}/User/ColorHighlight.sublime-settings"
         }
     },
 
     {
-        "caption": "ColorHighlighter: Color Highlight Current File",
-        "command": "color_highlighter_highlight",
+        "caption": "ColorHighlight: Color Highlight Current File",
+        "command": "color_highlight",
         "args": {"action": "highlight"}
     },
     {
-        "caption": "ColorHighlighter: Background Color Highlighting",
-        "command": "color_highlighter_enable",
+        "caption": "ColorHighlight: Background Color Highlighting",
+        "command": "color_highlight_enable",
         "args": {"action": "on"}
     },
     {
-        "caption": "ColorHighlighter: Load-Save Color Highlighting",
-        "command": "color_highlighter_enable_load_save",
+        "caption": "ColorHighlight: Load-Save Color Highlighting",
+        "command": "color_highlight_enable_load_save",
         "args": {"action": "load-save"}
     },
     {
-        "caption": "ColorHighlighter: Save-Only Color Highlighting",
-        "command": "color_highlighter_enable_save_only",
+        "caption": "ColorHighlight: Save-Only Color Highlighting",
+        "command": "color_highlight_enable_save_only",
         "args": {"action": "save-only"}
     },
     {
-        "caption": "ColorHighlighter: Disable Color Highlighting",
-        "command": "color_highlighter_disable",
+        "caption": "ColorHighlight: Disable Color Highlighting",
+        "command": "color_highlight_disable",
         "args": {"action": "off"}
     },
     {
-        "caption": "ColorHighlighter: Reset",
-        "command": "color_highlighter",
+        "caption": "ColorHighlight: Reset",
+        "command": "color_highlight",
         "args": {"action": "reset"}
     },
     {
-        "caption": "ColorHighlighter: Restore Color Scheme",
-        "command": "restore_color_scheme",
+        "caption": "ColorHighlight: Restore Color Scheme",
+        "command": "color_highlight_restore",
     }
 ]

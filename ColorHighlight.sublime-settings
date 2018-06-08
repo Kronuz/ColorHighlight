@@ -1,0 +1,25 @@
+/*
+    ColorHighlight default settings
+*/
+{
+    "default": {
+        /*
+            highlight - Sets the mode in which ColorHighlight runs:
+
+            true - Color highlighting occurs in the background as you type (the default).
+            false - Color highlighting only occurs when you initiate it.
+            "load-save" - Color highlighting occurs only when a file is loaded and saved.
+            "save-only" - Color highlighting occurs only when a file is saved.
+        */
+        "highlight": true,
+
+        /*
+            hex_values - Highlights Hex colors
+        */
+        "hex_values" : true,
+
+        "0x_hex_values" : true,
+
+        "xterm_color_values": false
+    }
+}
