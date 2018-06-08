@@ -402,6 +402,7 @@ def erase_highlight_colors(view=None):
         if vid in COLOR_HIGHLIGHTS:
             for name in COLOR_HIGHLIGHTS[vid]:
                 view.erase_regions(name)
+                view.erase_regions(name + '_icon')
         COLOR_HIGHLIGHTS[vid] = set()
     else:
         for window in sublime.windows():
@@ -555,7 +556,9 @@ def highlight_colors(view, selection=False, **kwargs):
     all_regs = COLOR_HIGHLIGHTS[vid]
 
     for name, w in words.items():
-        view.add_regions(name, w, name, toicon(name), sublime.PERSISTENT)
+        view.add_regions(name, w, name, flags=sublime.PERSISTENT)
+        wi = [sublime.Region(i, i) for i in set(view.line(r).a for r in w)]
+        view.add_regions(name + '_icon', wi, name + '_icon', icon=toicon(name), flags=sublime.PERSISTENT | sublime.HIDDEN)
         all_regs.add(name)
 
     TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to color highlight
