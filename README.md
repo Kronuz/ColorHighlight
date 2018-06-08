@@ -3,6 +3,7 @@
 Show hexadecimal colorcodes (like "#ffffff", 0xffffff "rgb(255, 255, 255)",
 "white", etc.) with their real color and gutter icons.
 
+![Description](screenshots/screenshot.gif?raw=true)
 
 ## Installation
 
