@@ -20,11 +20,6 @@
         "args": {"action": "highlight"}
     },
     {
-        "caption": "ColorHighlight: Background Color Highlighting",
-        "command": "color_highlight_enable",
-        "args": {"action": "on"}
-    },
-    {
         "caption": "ColorHighlight: Load-Save Color Highlighting",
         "command": "color_highlight_enable_load_save",
         "args": {"action": "load-save"}
@@ -38,6 +33,11 @@
         "caption": "ColorHighlight: Disable Color Highlighting",
         "command": "color_highlight_disable",
         "args": {"action": "off"}
+    },
+    {
+        "caption": "ColorHighlight: Enable Color Highlighting",
+        "command": "color_highlight_enable",
+        "args": {"action": "on"}
     },
     {
         "caption": "ColorHighlight: Reset",

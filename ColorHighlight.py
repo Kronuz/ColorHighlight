@@ -172,7 +172,7 @@ class ColorHighlightCommand(sublime_plugin.WindowCommand):
         view = self.window.active_view()
         action = args.get('action', '')
         if view and action:
-            view.run_command('highlight', action)
+            view.run_command('color_highlight', action)
 
     def is_enabled(self):
         return bool(settings.get('highlight'))
@@ -324,19 +324,19 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
         '''Turns load-save linting on.'''
         settings.set('highlight', 'load-save')
         settings.save()
-        erase_highlight_colors(self.view)
+        erase_highlight_colors()
 
     def enable_save_only(self):
         '''Turns save-only linting on.'''
         settings.set('highlight', 'save-only')
         settings.save()
-        erase_highlight_colors(self.view)
+        erase_highlight_colors()
 
     def off(self):
         '''Turns background linting off.'''
         settings.set('highlight', False)
         settings.save()
-        erase_highlight_colors(self.view)
+        erase_highlight_colors()
 
 
 class BackgroundColorHighlight(sublime_plugin.EventListener):
