@@ -144,6 +144,7 @@ class SchemaColorizer(object):
         content = self.read_file(packages_path, cs)
         if os.path.exists(packages_path + cs + self.backup_ext):
             log("Already backuped")
+            self.need_restore = True
         else:
             self.write_file(packages_path, cs + self.backup_ext, content)  # backup
             log("Backup done")
@@ -199,6 +200,9 @@ class SchemaColorizer(object):
             self.need_restore = True
             log("Updated")
 
+    def clear(self):
+        self.colors.clear()
+
     def restore_color_scheme(self):
         if not self.need_restore:
             return
@@ -215,7 +219,7 @@ class SchemaColorizer(object):
             log("Starting restore scheme: " + cs)
             # TODO: move to other thread
             self.write_file(packages_path, cs, self.read_file(packages_path, cs + self.backup_ext))
-            self.colors = {}
+            self.colors.clear()
             log("Restore done.")
         else:
             log("No backup :(")

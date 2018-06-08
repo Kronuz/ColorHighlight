@@ -12,13 +12,11 @@ from functools import partial
 import sublime
 import sublime_plugin
 
-from .settings import Settings
+from .settings import Settings, SettingTogglerCommandMixin
 from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex
 
 NAME = "ColorHighlight"
 VERSION = "1.0"
-
-colorizer = SchemaColorizer()
 
 
 # Color formats:
@@ -312,10 +310,9 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
 
     def reset(self):
         '''Removes existing lint marks and restores user settings.'''
-        view = self.view
-        erase_highlight_colors(view)
+        erase_highlight_colors()
         queue_highlight_colors(self.view, preemptive=True)
-        colorizer.colors.clear()
+        colorizer.clear()
 
     def on(self):
         '''Turns background linting on.'''
@@ -399,12 +396,17 @@ TIMES = {}       # collects how long it took the color highlight to complete
 COLOR_HIGHLIGHTS = {}  # Highlighted regions
 
 
-def erase_highlight_colors(view):
-    vid = view.id()
-    if vid in COLOR_HIGHLIGHTS:
-        for name in COLOR_HIGHLIGHTS[vid]:
-            view.erase_regions(name)
-    COLOR_HIGHLIGHTS[vid] = set()
+def erase_highlight_colors(view=None):
+    if view:
+        vid = view.id()
+        if vid in COLOR_HIGHLIGHTS:
+            for name in COLOR_HIGHLIGHTS[vid]:
+                view.erase_regions(name)
+        COLOR_HIGHLIGHTS[vid] = set()
+    else:
+        for window in sublime.windows():
+            for view in window.views():
+                erase_highlight_colors(view)
 
 
 def highlight_colors(view, selection=False, **kwargs):
@@ -772,6 +774,11 @@ class ColorHighlightSettings(Settings):
 
 if 'settings' not in globals():
     settings = ColorHighlightSettings(NAME)
+
+    class ColorHighlightSettingCommand(SettingTogglerCommandMixin, sublime_plugin.WindowCommand):
+        settings = settings
+
+    colorizer = SchemaColorizer()
 
 
 ################################################################################
