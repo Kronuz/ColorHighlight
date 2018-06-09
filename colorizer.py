@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import errno
 from collections import OrderedDict
 
 import sublime
@@ -66,9 +67,11 @@ class SchemaColorizer(object):
 
     def write_file(self, pp, fl, s):
         rf = pp + fl
-        dn = os.path.dirname(rf)
-        if not os.path.exists(dn):
-            os.makedirs(dn)
+        try:
+            os.makedirs(os.path.dirname(rf))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
         f = open(rf, 'w')
         f.write(s)
         f.close()
