@@ -72,16 +72,14 @@ class SchemaColorizer(object):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        f = open(rf, 'w')
-        f.write(s)
-        f.close()
+        with open(rf, 'w') as f:
+            f.write(s)
 
     def read_file(self, pp, fl):
         rf = pp + fl
         if os.path.exists(rf):
-            f = open(rf, 'r')
-            res = f.read()
-            f.close()
+            with open(rf, 'r') as f:
+                res = f.read()
         else:
             rf = 'Packages' + fl
             res = sublime.load_resource(rf)
