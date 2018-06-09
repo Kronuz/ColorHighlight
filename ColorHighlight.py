@@ -521,6 +521,20 @@ def highlight_colors(view, selection=False, **kwargs):
             else:
                 a = 1.0
             col = tohex(col0, None, None, a)
+
+        # Fix case when color it's the same as background color:
+        if hasattr(view, 'style'):
+            bg_col = (view.style()['background'] + 'FF')[:9].upper()
+            if col == bg_col:
+                br = int(bg_col[1:3], 16)
+                bg = int(bg_col[3:5], 16)
+                bb = int(bg_col[5:7], 16)
+                ba = int(bg_col[7:9], 16)
+                br += -1 if br > 1 else 1
+                bg += -1 if bg > 1 else 1
+                bb += -1 if bb > 1 else 1
+                col = '#%02X%02X%02X%02X' % (br, bg, bb, ba)
+
         name = colorizer.add_color(col)
         if name not in words:
             words[name] = [ranges[i]]

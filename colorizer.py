@@ -164,7 +164,7 @@ class SchemaColorizer(object):
         current_colors = set("#%s" % c.upper() for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
 
         if hasattr(view, 'style'):
-            bg_col = view.style()['background']
+            bg_col = (view.style()['background'] + 'FF')[:9].upper()
         else:
             bg_col = '#333333FF'
 
