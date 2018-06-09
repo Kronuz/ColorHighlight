@@ -1,7 +1,7 @@
 # 🎨 Color Highlight
 
-Show hexadecimal colorcodes (like "#ffffff", 0xffffff "rgb(255, 255, 255)",
-"white", etc.) with their real color and gutter icons.
+Show color codes (like "#ffffff", 0xffffff "rgb(255, 255, 255)", "white",
+hsl(0, 0%, 100%), etc.) with their real color as the background and gutter icons.
 
 ![Description](screenshots/screenshot.gif?raw=true)
 
@@ -19,9 +19,11 @@ Supported color representations are:
 
 - Hexademical e.g. #RGB or #RRGGBB or #RRGGBBAA (you can use both upper and lower case letters)
 
-- RBG or RGBA value e.g. rgb(rrr,ggg,bbb) or rgba(rrr,ggg,bbb,a.aaa) with decimal channel values.
+- RBG or RGBA value e.g. rgb(rrr, ggg, bbb) or rgba(rrr, ggg, bbb, a.aaa) with decimal channel values.
 
-- Hexademical numbers with prefix 0x like 0xRRGGBBAA
+- HSL or HSLA value e.g. hsl(hue, sat%, lum%) or hsla(hue, sat%, lum%, a.aaa).
+
+- Hexadecimal numbers with prefix 0x like 0xRRGGBBAA
 
 - Named colors like "green", "black" and many others are also supported.
 
