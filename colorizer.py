@@ -169,6 +169,13 @@ class SchemaColorizer(object):
             bg_col = '#333333FF'
 
         rules = []
+        if not re.search(r'\b%sgutter\b' % self.prefix, content):
+            rules.append({
+                "name": "Gutter Color",
+                "scope": "%sgutter" % self.prefix,
+                "background": "#000000",
+                "foreground": "#ffffff",
+            })
         for col, name in self.colors.items():
             if col not in current_colors:
                 fg_col = self.get_inv_col(bg_col, col)

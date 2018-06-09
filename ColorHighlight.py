@@ -558,7 +558,7 @@ def highlight_colors(view, selection=False, **kwargs):
     for name, w in words.items():
         view.add_regions(name, w, name, flags=sublime.PERSISTENT)
         wi = [sublime.Region(i, i) for i in set(view.line(r).a for r in w)]
-        view.add_regions(name + '_icon', wi, name + '_icon', icon=toicon(name), flags=sublime.PERSISTENT | sublime.HIDDEN)
+        view.add_regions(name + '_icon', wi, '%sgutter' % colorizer.prefix, icon=toicon(name), flags=sublime.PERSISTENT)
         all_regs.add(name)
 
     TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to color highlight
