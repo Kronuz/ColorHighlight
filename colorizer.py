@@ -1,7 +1,10 @@
 import os
 import re
+import sys
 import json
 import errno
+import plistlib
+from xml.parsers.expat import ExpatError
 from collections import OrderedDict
 
 import sublime
@@ -17,6 +20,15 @@ def log(s):
     pass
 
 
+if sys.version_info[0] == 3:
+    if not hasattr(plistlib, 'loads'):
+        plistlib.loads = lambda data: plistlib.readPlistFromBytes(data)
+        plistlib.dumps = lambda value: plistlib.writePlistToBytes(value)
+else:
+    plistlib.loads = lambda data: plistlib.readPlistFromString(data)
+    plistlib.dumps = lambda value: plistlib.writePlistToString(value)
+
+
 class SchemaColorizer(object):
     name = "Color"
     prefix = "col_"
@@ -27,21 +39,6 @@ class SchemaColorizer(object):
     need_upd = False
     need_restore = False
     need_backup = False
-    gen_string = """
-        <dict>
-            <key>name</key>
-            <string>{name}</string>
-            <key>scope</key>
-            <string>{scope}</string>
-            <key>settings</key>
-            <dict>
-                <key>background</key>
-                <string>{background}</string>
-                <key>foreground</key>
-                <string>{foreground}</string>
-            </dict>
-        </dict>
-"""
 
     def normalize(self, col):
         if col:
@@ -189,21 +186,25 @@ class SchemaColorizer(object):
 
         if rules:
             try:
+                # For sublime-color-scheme
                 json_content = json.loads(content, object_pairs_hook=OrderedDict)
                 json_content['rules'].extend(rules)
                 content = json.dumps(json_content, indent=4)
             except ValueError:
-                string = ""
-                for rule in rules:
-                    string += self.gen_string.format(**rule)
-                if string:
-                    # edit content
-                    n = content.find("<array>") + len("<array>")
-                    try:
-                        content = content[:n] + string + content[n:]
-                    except UnicodeDecodeError:
-                        content = content[:n] + string.encode("utf-8") + content[n:]
-
+                try:
+                    # for tmTheme
+                    plist_content = plistlib.loads(content.encode('utf-8'))
+                    plist_content['settings'].extend({
+                        "name": r['name'],
+                        "scope": r['scope'],
+                        "settings": {
+                            "foreground": r['foreground'],
+                            "background": r['background'],
+                        }
+                    } for r in rules)
+                    content = plistlib.dumps(plist_content).decode('utf-8')
+                except ExpatError:
+                    pass
             self.write_file(packages_path, cs, content)
             self.need_restore = True
             log("Updated")
