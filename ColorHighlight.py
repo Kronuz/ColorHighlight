@@ -789,12 +789,14 @@ class ColorHighlightSettings(Settings):
     pass
 
 
-if 'settings' not in globals():
-    settings = ColorHighlightSettings(NAME)
+settings = ColorHighlightSettings(NAME)
 
-    class ColorHighlightSettingCommand(SettingTogglerCommandMixin, sublime_plugin.WindowCommand):
-        settings = settings
 
+class ColorHighlightSettingCommand(SettingTogglerCommandMixin, sublime_plugin.WindowCommand):
+    settings = settings
+
+
+if 'colorizer' not in globals():
     colorizer = SchemaColorizer()
 
 
