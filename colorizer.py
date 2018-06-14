@@ -4,8 +4,6 @@ import sys
 import json
 import errno
 import plistlib
-from xml.parsers.expat import ExpatError
-from collections import OrderedDict
 
 import sublime
 
@@ -30,7 +28,6 @@ else:
 
 
 class SchemaColorizer(object):
-    name = "Color"
     prefix = "col_"
     backup_ext = ".chback"
 
@@ -169,7 +166,6 @@ class SchemaColorizer(object):
         rules = []
         if not re.search(r'\b%sgutter\b' % self.prefix, content):
             rules.append({
-                "name": "Gutter Color",
                 "scope": "%sgutter" % self.prefix,
                 "background": "#000000",
                 "foreground": "#ffffff",
@@ -178,7 +174,6 @@ class SchemaColorizer(object):
             if col not in current_colors:
                 fg_col = self.get_inv_col(bg_col, col)
                 rules.append({
-                    "name": self.name,
                     "scope": name,
                     "background": col,
                     "foreground": fg_col,
@@ -187,12 +182,17 @@ class SchemaColorizer(object):
         if rules:
             try:
                 # For sublime-color-scheme
-                json_content = json.loads(content, object_pairs_hook=OrderedDict)
-                json_content['rules'].extend(rules)
-                content = json.dumps(json_content, indent=4)
-            except ValueError:
-                try:
-                    # for tmTheme
+                m = re.search(r'([\t ]*)"rules":\s*\[[\r\n]+', content)
+                if m:
+                    json_rules = json.dumps({"rules": rules}, indent=m.group(1))
+                    json_rules = '\n'.join(map(str.rstrip, json_rules.split('\n')[2:-2])) + ',\n'
+                    content = content[:m.end()] + json_rules + content[m.end():]
+                    self.write_file(packages_path, cs, content)
+                    self.need_restore = True
+                    log("Updated sublime-color-scheme")
+
+                # for tmTheme
+                if re.match(r'^\s*<?xml', content):
                     plist_content = plistlib.loads(content.encode('utf-8'))
                     plist_content['settings'].extend({
                         "name": r['name'],
@@ -203,11 +203,13 @@ class SchemaColorizer(object):
                         }
                     } for r in rules)
                     content = plistlib.dumps(plist_content).decode('utf-8')
-                except ExpatError:
-                    pass
-            self.write_file(packages_path, cs, content)
-            self.need_restore = True
-            log("Updated")
+                    self.write_file(packages_path, cs, content)
+                    self.need_restore = True
+                    log("Updated tmTheme")
+
+                log("Not Updated: Schem format not recognized")
+            except Exception as e:
+                log("Not Updated: %s" % e)
 
     def clear(self):
         self.colors.clear()
