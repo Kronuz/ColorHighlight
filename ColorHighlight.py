@@ -4,6 +4,7 @@ import re
 import os
 import time
 import zlib
+import math
 import struct
 import threading
 import colorsys
@@ -33,6 +34,9 @@ VERSION = "1.0.4"
 # 0xFFFFFF
 # hsl(360, 0%, 50%)
 # hsla(360, 0%, 50%, 0.5)
+# hwb(360, 50%, 50%)
+# lab(100, 100, 100) <-> #ff9331
+# lch(100, 100, 100) <-> #ffff00
 # \033[38;15m
 
 
@@ -43,28 +47,28 @@ def regexp_factory(names, xterm):
 
     _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _ALL_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _ALL_HEX_COLORS,
+        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?)|(%s))(?:,\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?))?\)' % _ALL_HEX_COLORS,
         r'(%s)' % _ALL_HEX_COLORS,
     )
     _ALL_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _XHEX_COLORS = r'%s|%s' % (_COLORS, r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
     _XHEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _XHEX_COLORS,
+        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?)|(%s))(?:,\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?))?\)' % _XHEX_COLORS,
         r'(%s)' % _XHEX_COLORS,
     )
     _XHEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _HEX_COLORS = r'%s|%s' % (_COLORS, r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _HEX_COLORS,
+        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?)|(%s))(?:,\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?))?\)' % _HEX_COLORS,
         r'(%s)' % _HEX_COLORS,
     )
     _HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _NO_HEX_COLORS = r'%s' % (_COLORS,)
     _NO_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl)\((?:([0-9]*\.\d+|[0-9]+),\s*([0-9]*\.\d+|[0-9]+%%?),\s*([0-9]*\.\d+|[0-9]+%%?)|(%s))(?:,\s*([0-9]*\.\d+|[0-9]+%%?))?\)' % _NO_HEX_COLORS,
+        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?),\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?)|(%s))(?:,\s*([-+]?[0-9]*\.\d+|[-+]?[0-9]+(?:%%|deg)?))?\)' % _NO_HEX_COLORS,
         r'(%s)' % _NO_HEX_COLORS,
     )
     _NO_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
@@ -98,6 +102,92 @@ _R_RE = re.compile(r'\\([0-9])')
 COLORS_RE = dict((k, (re.compile(v[0]), _R_RE.sub(lambda m: chr(int(m.group(1))), v[1]))) for k, v in COLORS_REGEX.items())
 
 
+def hsl_to_rgb(h, s, l):
+    # h -> [0, 360)
+    # s -> [0, 100]
+    # l -> [0, 100]
+
+    H = h / 360.0
+    S = s / 100.0
+    L = l / 100.0
+
+    RR, GG, BB = colorsys.hls_to_rgb(H, L, S)
+    return int(RR * 255), int(GG * 255), int(BB * 255)
+
+
+def hwb_to_rgb(h, w, b):
+    # h -> [0, 360)
+    # w -> [0, 100]
+    # b -> [0, 100]
+    H = h / 360.0
+    W = w / 100.0
+    B = b / 100.0
+
+    RR, GG, BB = colorsys.hls_to_rgb(H, 0.5, 1)
+    RR = RR * (1 - W - B) + W
+    GG = GG * (1 - W - B) + W
+    BB = BB * (1 - W - B) + W
+
+    r, g, b = int(RR * 255), int(GG * 255), int(BB * 255)
+    r = 0 if r < 0 else 255 if r > 255 else r
+    g = 0 if g < 0 else 255 if g > 255 else g
+    b = 0 if b < 0 else 255 if b > 255 else b
+    return r, g, b
+
+
+def lab_to_rgb(L, a, b):
+    # L -> [0, 100]
+    # a -> [-160, 160]
+    # b -> [-160, 160]
+
+    Y = (L + 16.0) / 116.0
+    X = a / 500.0 + Y
+    Z = Y - b / 200.0
+
+    Y3 = Y ** 3.0
+    Y = Y3 if Y3 > 0.008856 else (Y - 16.0 / 116.0) / 7.787
+
+    X3 = X ** 3.0
+    X = X3 if X3 > 0.008856 else (X - 16.0 / 116.0) / 7.787
+
+    Z3 = Z ** 3.0
+    Z = Z3 if Z3 > 0.008856 else (Z - 16.0 / 116.0) / 7.787
+
+    # Normalize white point for Observer=2°, Illuminant=D65
+    X *= 0.95047
+    Y *= 1.0
+    Z *= 1.08883
+
+    # XYZ to RGB
+    RR = X * 3.240479 + Y * -1.537150 + Z * - 0.498535
+    GG = X * -0.969256 + Y * 1.875992 + Z * 0.041556
+    BB = X * 0.055648 + Y * -0.204043 + Z * 1.057311
+
+    RR = 1.055 * RR ** (1 / 2.4) - 0.055 if RR > 0.0031308 else 12.92 * RR
+    GG = 1.055 * GG ** (1 / 2.4) - 0.055 if GG > 0.0031308 else 12.92 * GG
+    BB = 1.055 * BB ** (1 / 2.4) - 0.055 if BB > 0.0031308 else 12.92 * BB
+
+    r, g, b = int(RR * 255), int(GG * 255), int(BB * 255)
+    r = 0 if r < 0 else 255 if r > 255 else r
+    g = 0 if g < 0 else 255 if g > 255 else g
+    b = 0 if b < 0 else 255 if b > 255 else b
+    return r, g, b
+
+
+def lch_to_lab(L, c, h):
+    # L -> [0, 100]
+    # c -> [0, 230]
+    # h -> [0, 360)
+    a = c * math.cos(math.radians(h))
+    b = c * math.sin(math.radians(h))
+    return L, a, b
+
+
+def lch_to_rgb(L, c, h):
+    L, a, b = lch_to_lab(L, c, h)
+    return lab_to_rgb(L, a, b)
+
+
 def tohex(r, g, b, a):
     if g is not None and b is not None:
         sr = '%X' % r
@@ -113,7 +203,7 @@ def tohex(r, g, b, a):
         sr = r[1:3]
         sg = r[3:5]
         sb = r[5:7]
-    sa = '%X' % int(a * 255)
+    sa = '%X' % int(a / 100.0 * 255)
     if len(sa) == 1:
         sa = '0' + sa
     return '#%s%s%s%s' % (sr, sg, sb, sa)
@@ -441,86 +531,156 @@ def highlight_colors(view, selection=False, **kwargs):
         mode, _, col = col.partition('|')
         col = col.rstrip(',')
         col = col.split(',')
-        if mode.startswith('hsl'):
-            if len(col) == 1:
-                continue
+        try:
+            if mode in ('hsl', 'hsla', 'hwb'):
+                if len(col) > 2 and col[0] and col[1] and col[2]:
+                    # In the form of hsl(360, 100%, 100%) or hsla(360, 100%, 100%, 1.0) or hwb(360, 50%, 50%):
+                    if col[0].endswith('deg'):
+                        col[0] = col[0][:-3]
+                    h = float(col[0]) % 360
+                    if col[1].endswith('%'):
+                        sb = float(col[1][:-1])
+                    else:
+                        sb = float(col[1]) * 100.0
+                    if sb < 0 or sb > 100:
+                        raise ValueError("sb out of range")
+                    if col[2].endswith('%'):
+                        lw = float(col[2][:-1])
+                    else:
+                        lw = float(col[2]) * 100.0
+                    if lw < 0 or lw > 100:
+                        raise ValueError("lw out of range")
+                    if mode == 'hwb':
+                        if sb + lw > 100:
+                            raise ValueError("sb + lw > 100")
+                    if len(col) == 4:
+                        if mode == 'hsl':
+                            raise ValueError("hsl should not have alpha")
+                        if col[3].endswith('%'):
+                            alpha = float(col[3][:-1])
+                        else:
+                            alpha = float(col[3]) * 100.0
+                        if alpha < 0 or alpha > 100:
+                            raise ValueError("alpha out of range")
+                    else:
+                        alpha = 100.0
+                    if mode in ('hsl', 'hsla'):
+                        r, g, b = hsl_to_rgb(h, sb, lw)
+                    else:
+                        r, g, b = hwb_to_rgb(h, sb, lw)
+                    col = tohex(r, g, b, alpha)
+                else:
+                    raise ValueError("invalid hsl/hsla/hwb")
+            elif mode == 'lab':
+                # The first argument specifies the CIE Lightness, the second
+                # argument is a and the third is b. L is constrained to the
+                # range [0, 100] while a and b are signed values and
+                # theoretically unbounded (but in practice do not exceed ±160).
+                # There is an optional fourth alpha value separated by a comma.
+                if len(col) > 2 and col[0] and col[1] and col[2]:
+                    # In the form of lab(100, 0, 0) or lab(100, 0, 0, 1.0):
+                    # lab(100, 0, 127) <-> rgb(255, 250, 0)
+                    L = float(col[0])
+                    if L < 0 or L > 100:
+                        raise ValueError("L out of range")
+                    a = float(col[1])
+                    b = float(col[2])
+                    if len(col) == 4:
+                        if col[3].endswith('%'):
+                            alpha = float(col[3][:-1])
+                        else:
+                            alpha = float(col[3]) * 100.0
+                        if alpha < 0 or alpha > 100:
+                            raise ValueError("alpha out of range")
+                    else:
+                        alpha = 100.0
+                    r, g, b = lab_to_rgb(L, a, b)
+                    col = tohex(r, g, b, alpha)
+                else:
+                    raise ValueError("invalid lab")
+            elif mode == 'lch':
+                # The first argument specifies the CIE Lightness, the second
+                # argument is C and the third is H. L is constrained to the
+                # range [0, 100]. C is an unsigned number, theoretically
+                # unbounded (but in practice does not exceed 230). H is
+                # constrained to the range [0, 360). There is an optional
+                # fourth alpha value separated by a comma.
+                if len(col) > 2 and col[0] and col[1] and col[2]:
+                    # In the form of lch(0, 250, 360) or lch(100, 100, 360, 1.0):
+                    L = float(col[0])
+                    if L < 0 or L > 100:
+                        raise ValueError("L out of range")
+                    c = float(col[1])
+                    if c < 0:
+                        raise ValueError("c out of range")
+                    if col[2].endswith('deg'):
+                        col[2] = col[2][:-3]
+                    h = float(col[2]) % 360
+                    if len(col) == 4:
+                        if col[3].endswith('%'):
+                            alpha = float(col[3][:-1])
+                        else:
+                            alpha = float(col[3]) * 100.0
+                        if alpha < 0 or alpha > 100:
+                            raise ValueError("alpha out of range")
+                    else:
+                        alpha = 100.0
+                    r, g, b = lch_to_rgb(L, c, h)
+                    col = tohex(r, g, b, alpha)
+                else:
+                    raise ValueError("invalid lch")
+            elif len(col) == 1:
+                # In the form of color name black or #FFFFFFFF or 0xFFFFFF:
+                col0 = col[0]
+                col0 = all_names_to_hex.get(col0.lower(), col0.upper())
+                if col0.startswith('0X'):
+                    col0 = '#' + col0[2:]
+                if len(col0) == 4:
+                    col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
+                elif len(col0) == 7:
+                    col0 += 'FF'
+                col = col0
             elif col[1] and col[2]:
-                # In the form of hsl(360, 100%, 100%) or hsla(360, 100%, 100%, 1.0):
-                h = float(int(col[0]) % 360) / 360.0
-                if col[1].endswith('%'):
-                    s = float(col[1][:-1]) / 100.0
-                else:
-                    s = float(col[1])
-                if s > 1.0:
-                    continue
-                if col[2].endswith('%'):
-                    l = float(col[2][:-1]) / 100.0  # noqa: E741
-                else:
-                    l = float(col[2])  # noqa: E741
-                if l > 1.0:
-                    continue
+                # In the form of rgb(255, 255, 255) or rgba(255, 255, 255, 1.0):
+                r = int(col[0])
+                g = int(col[1])
+                b = int(col[2])
+                if (r < 0 or r > 255) or (g < 0 or g > 255) or (b < 0 or b > 255):
+                    raise ValueError("rgb out of range")
                 if len(col) == 4:
                     if col[3].endswith('%'):
-                        a = float(col[3][:-1]) / 100.0
+                        alpha = float(col[3][:-1])
                     else:
-                        a = float(col[3])
-                    if a > 1.0:
-                        continue
+                        alpha = float(col[3]) * 100.0
+                    if alpha < 0 or alpha > 100:
+                        raise ValueError("alpha out of range")
                 else:
-                    a = 1.0
-                r, g, b = colorsys.hls_to_rgb(h, l, s)
-                col = tohex(int(r * 255), int(g * 255), int(b * 255), a)
+                    alpha = 100.0
+                col = tohex(r, g, b, alpha)
             else:
-                continue
-        elif len(col) == 1:
-            # In the form of color name black or #FFFFFFFF or 0xFFFFFF:
-            col0 = col[0]
-            col0 = all_names_to_hex.get(col0.lower(), col0.upper())
-            if col0.startswith('0X'):
-                col0 = '#' + col0[2:]
-            if len(col0) == 4:
-                col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
-            elif len(col0) == 7:
-                col0 += 'FF'
-            col = col0
-        elif col[1] and col[2]:
-            # In the form of rgb(255, 255, 255) or rgba(255, 255, 255, 1.0):
-            r = int(col[0])
-            g = int(col[1])
-            b = int(col[2])
-            if r >= 256 or g >= 256 or b >= 256:
-                continue
-            if len(col) == 4:
-                if col[3].endswith('%'):
-                    a = float(col[3][:-1]) / 100.0
+                # In the form of rgba(white, 20%) or rgba(#FFFFFF, 0.4):
+                col0 = col[0]
+                col0 = all_names_to_hex.get(col0.lower(), col0.upper())
+                if col0.startswith('0X'):
+                    col0 = '#' + col0[2:]
+                if len(col0) == 4:
+                    col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
+                elif len(col0) == 7:
+                    col0 += 'FF'
+                if len(col) == 4:
+                    col3 = col[3]
+                    if col3.endswith('%'):
+                        alpha = float(col3[:-1])
+                    else:
+                        alpha = float(col3) * 100.0
+                    if alpha < 0 or alpha > 100:
+                        raise ValueError("alpha out of range")
                 else:
-                    a = float(col[3])
-                if a > 1.0:
-                    continue
-            else:
-                a = 1.0
-            col = tohex(r, g, b, a)
-        else:
-            # In the form of rgba(white, 20%) or rgba(#FFFFFF, 0.4):
-            col0 = col[0]
-            col0 = all_names_to_hex.get(col0.lower(), col0.upper())
-            if col0.startswith('0X'):
-                col0 = '#' + col0[2:]
-            if len(col0) == 4:
-                col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
-            elif len(col0) == 7:
-                col0 += 'FF'
-            if len(col) == 4:
-                col3 = col[3]
-                if col3.endswith('%'):
-                    a = float(col3[:-1]) / 100.0
-                else:
-                    a = float(col3)
-                if a > 1.0:
-                    continue
-            else:
-                a = 1.0
-            col = tohex(col0, None, None, a)
+                    alpha = 100.0
+                col = tohex(col0, None, None, alpha)
+        except ValueError as e:
+            print(e)
+            continue
 
         # Fix case when color it's the same as background color:
         if hasattr(view, 'style'):
