@@ -8,7 +8,7 @@ import datetime
 
 import sublime
 
-from .colors import names_to_hex, xterm_to_hex
+from .colors import names_to_hex, xterm_to_hex, xterm8_to_hex, xterm8b_to_hex, xterm8f_to_hex
 
 DEFAULT_COLOR_SCHEME = 'Monokai.sublime-color-scheme'
 

@@ -14,7 +14,7 @@ import sublime
 import sublime_plugin
 
 from .settings import Settings, SettingTogglerCommandMixin
-from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex
+from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex, xterm8_to_hex, xterm8b_to_hex, xterm8f_to_hex
 
 NAME = "ColorHighlight"
 VERSION = "1.0.7"
@@ -38,15 +38,14 @@ VERSION = "1.0.7"
 # lab(100, 100, 100) <-> #ff9331
 # lch(100, 100, 100) <-> #ffff00
 # hsv(40, 70%, 100%) <-> #ffc34d
-# \033[38;15m
+# \033[31m
+# \033[38;5;22m
+# \033[38;2;0;0;255m
 
-
-def regexp_factory(names, xterm):
+def regexp_factory(names):
     _COLORS = r'(?<![-.\w])%s(?![-.\w])' % r'(?![-.\w])|(?<![-.\w])'.join(names.keys())
-    if xterm:
-        _COLORS += r'|(?<=[;])%s(?=[;m])' % r'(?=[;m])|(?<=[;])'.join(xterm.keys())
 
-    _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
+    _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b|(?:\x1b|\\033|\\x1b)\[(?:\d{1,3}(?:;\d{1,3})*m)')
     _ALL_HEX_COLORS = r'%s|%s' % (
         r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _ALL_HEX_COLORS,
         r'(%s)' % _ALL_HEX_COLORS,
@@ -86,17 +85,12 @@ def regexp_factory(names, xterm):
     )
 
 
-_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, None)
-__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE, __XHEX_COLORS, __XHEX_COLORS_CAPTURE, __HEX_COLORS, __HEX_COLORS_CAPTURE, __ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex, xterm_to_hex)
+_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex)
 COLORS_REGEX = {
-    (False, False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
-    (False, True, False): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
-    (True, False, False): (_HEX_COLORS, _HEX_COLORS_CAPTURE),
-    (True, True, False): (_ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE),
-    (False, False, True): (__NO_HEX_COLORS, __NO_HEX_COLORS_CAPTURE,),
-    (False, True, True): (__XHEX_COLORS, __XHEX_COLORS_CAPTURE),
-    (True, False, True): (__HEX_COLORS, __HEX_COLORS_CAPTURE),
-    (True, True, True): (__ALL_HEX_COLORS, __ALL_HEX_COLORS_CAPTURE),
+    (False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
+    (False, True): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
+    (True, False): (_HEX_COLORS, _HEX_COLORS_CAPTURE),
+    (True, True): (_ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE),
 }
 
 _R_RE = re.compile(r'\\([0-9])')
@@ -513,7 +507,7 @@ def highlight_colors(view, selection=False, **kwargs):
     _xterm_color_values = bool(settings.get('xterm_color_values'))
     if selection:
         colors_re, colors_re_capture = COLORS_RE[
-            (_hex_values, _xhex_values, _xterm_color_values)
+            (_hex_values, _xhex_values)
         ]
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
@@ -542,7 +536,7 @@ def highlight_colors(view, selection=False, **kwargs):
             ranges = []
     else:
         selected_lines = None
-        colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values, _xterm_color_values)]
+        colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values)]
         ranges = view.find_all(colors_re, 0, colors_re_capture, found)
 
     for i, col in enumerate(found):
@@ -652,16 +646,52 @@ def highlight_colors(view, selection=False, **kwargs):
                 else:
                     raise ValueError("invalid lch")
             elif len(col) == 1:
-                # In the form of color name black or #FFFFFFFF or 0xFFFFFF:
+                # In the form of color name black or #FFFFFFFF or 0xFFFFFF or xterm \033[32m:
                 col0 = col[0]
-                col0 = all_names_to_hex.get(col0.lower(), col0.upper())
-                if col0.startswith('0X'):
-                    col0 = '#' + col0[2:]
-                if len(col0) == 4:
-                    col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
-                elif len(col0) == 7:
-                    col0 += 'FF'
-                col = col0
+                if col0.endswith('m') and (col0.startswith('\x1b[') or col0.startswith('\\033[') or col0.startswith('\\x1b[')):
+                    _, _, col0 = col0.partition('[')
+                    col0 = ';' + col0[:-1] + ';'
+                    col0 = re.sub(r';0+', ';', col0)
+                    xterm_true = col0.find(';38;2;')
+                    xterm = col0.find(';38;5;')
+                    if xterm_true != -1:
+                        col = col0[xterm_true + 6:-1].split(';')
+                        r = int(col[0])
+                        g = int(col[1])
+                        b = int(col[2])
+                        if (r < 0 or r > 255) or (g < 0 or g > 255) or (b < 0 or b > 255):
+                            raise ValueError("rgb out of range")
+                        col = tohex(r, g, b, 100.0)
+                    elif xterm != -1:
+                        col = col0[xterm + 6:-1].split(';')[0]
+                        col = xterm_to_hex.get(col)
+                        if not col:
+                            continue
+                    else:
+                        mode = xterm8_to_hex
+                        modes = (xterm8_to_hex, xterm8b_to_hex, xterm8f_to_hex)
+                        q = -1
+                        for m in (0, 1, 2):
+                            p = col0.find(';%s;' % m)
+                            if p != -1 and p > q:
+                                mode = modes[m]
+                        xterm8 = col0[1:-1].split(';')
+                        col = None
+                        for x in xterm8:
+                            if x in mode:
+                                col = mode[x]
+                        if not col:
+                            continue
+                else:
+                    if col0.startswith('0x'):
+                        col0 = '#' + col0[2:]
+                    else:
+                        col0 = all_names_to_hex.get(col0.lower(), col0.upper())
+                    if len(col0) == 4:
+                        col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
+                    elif len(col0) == 7:
+                        col0 += 'FF'
+                    col = col0
             elif col[1] and col[2]:
                 # In the form of rgb(255, 255, 255) or rgba(255, 255, 255, 1.0):
                 r = int(col[0])
@@ -700,7 +730,7 @@ def highlight_colors(view, selection=False, **kwargs):
                 else:
                     alpha = 100.0
                 col = tohex(col0, None, None, alpha)
-        except ValueError as e:
+        except (ValueError, IndexError, KeyError) as e:
             # print(e)
             continue
 
