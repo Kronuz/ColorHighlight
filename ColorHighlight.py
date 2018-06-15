@@ -17,7 +17,7 @@ from .settings import Settings, SettingTogglerCommandMixin
 from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex
 
 NAME = "ColorHighlight"
-VERSION = "1.0.6"
+VERSION = "1.0.7"
 
 
 # Color formats:
