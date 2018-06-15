@@ -3,7 +3,6 @@ import re
 import sys
 import json
 import errno
-import hashlib
 import plistlib
 import datetime
 
@@ -30,7 +29,7 @@ else:
     plistlib.dumps = lambda value: plistlib.writePlistToString(value)
 
 
-def write_package(path, s):
+def write_package(path, content):
     rf = sublime.packages_path() + path
     try:
         os.makedirs(os.path.dirname(rf))
@@ -38,7 +37,7 @@ def write_package(path, s):
         if e.errno != errno.EEXIST:
             raise
     with open(rf, 'w') as f:
-        f.write(s)
+        f.write(content)
 
 
 def read_package(path):
@@ -62,11 +61,10 @@ class ColorScheme(object):
         self.path = path[8:]
         self.time = datetime.datetime.now()
 
-    @property
-    def md5(self):
-        if not hasattr(self, '_md5'):
-            self._md5 = hashlib.md5(sublime.load_binary_resource('Packages' + self.path)).digest()
-        return self._md5
+    def hash(self):
+        if not hasattr(self, '_hash'):
+            self._hash = hash(self.content())
+        return self._hash
 
     def restore(self):
         # Remove "Packages" part from name
@@ -241,7 +239,7 @@ class SchemaColorizer(object):
         if self.color_scheme and self.color_scheme.path == color_scheme.path:
             if self.color_scheme.time + datetime.timedelta(seconds=1) > color_scheme.time:
                 return
-            if self.color_scheme.md5 == color_scheme.md5:
+            if self.color_scheme.hash() == color_scheme.hash():
                 self.color_scheme.time = color_scheme.time
                 return
         log("Color scheme %s setup" % color_scheme.path)
