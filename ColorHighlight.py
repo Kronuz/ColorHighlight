@@ -37,6 +37,7 @@ VERSION = "1.0.7"
 # hwb(360, 50%, 50%)
 # lab(100, 100, 100) <-> #ff9331
 # lch(100, 100, 100) <-> #ffff00
+# hsv(40, 70%, 100%) <-> #ffc34d
 # \033[38;15m
 
 
@@ -47,28 +48,28 @@ def regexp_factory(names, xterm):
 
     _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _ALL_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _ALL_HEX_COLORS,
+        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _ALL_HEX_COLORS,
         r'(%s)' % _ALL_HEX_COLORS,
     )
     _ALL_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _XHEX_COLORS = r'%s|%s' % (_COLORS, r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
     _XHEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _XHEX_COLORS,
+        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _XHEX_COLORS,
         r'(%s)' % _XHEX_COLORS,
     )
     _XHEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _HEX_COLORS = r'%s|%s' % (_COLORS, r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
     _HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _HEX_COLORS,
+        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _HEX_COLORS,
         r'(%s)' % _HEX_COLORS,
     )
     _HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
 
     _NO_HEX_COLORS = r'%s' % (_COLORS,)
     _NO_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|hsla|rgb|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _NO_HEX_COLORS,
+        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _NO_HEX_COLORS,
         r'(%s)' % _NO_HEX_COLORS,
     )
     _NO_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
@@ -100,6 +101,19 @@ COLORS_REGEX = {
 
 _R_RE = re.compile(r'\\([0-9])')
 COLORS_RE = dict((k, (re.compile(v[0]), _R_RE.sub(lambda m: chr(int(m.group(1))), v[1]))) for k, v in COLORS_REGEX.items())
+
+
+def hsv_to_rgb(h, s, v):
+    # h -> [0, 360)
+    # s -> [0, 100]
+    # l -> [0, 100]
+
+    H = h / 360.0
+    S = s / 100.0
+    V = v / 100.0
+
+    RR, GG, BB = colorsys.hsv_to_rgb(H, S, V)
+    return int(RR * 255), int(GG * 255), int(BB * 255)
 
 
 def hsl_to_rgb(h, s, l):
@@ -536,7 +550,7 @@ def highlight_colors(view, selection=False, **kwargs):
         col = col.rstrip(',')
         col = col.split(',')
         try:
-            if mode in ('hsl', 'hsla', 'hwb'):
+            if mode in ('hsl', 'hsla', 'hsv', 'hsva', 'hwb'):
                 if len(col) > 2 and col[0] and col[1] and col[2]:
                     # In the form of hsl(360, 100%, 100%) or hsla(360, 100%, 100%, 1.0) or hwb(360, 50%, 50%):
                     if col[0].endswith('deg'):
@@ -549,29 +563,33 @@ def highlight_colors(view, selection=False, **kwargs):
                     if sb < 0 or sb > 100:
                         raise ValueError("sb out of range")
                     if col[2].endswith('%'):
-                        lw = float(col[2][:-1])
+                        lwv = float(col[2][:-1])
                     else:
-                        lw = float(col[2]) * 100.0
-                    if lw < 0 or lw > 100:
-                        raise ValueError("lw out of range")
+                        lwv = float(col[2]) * 100.0
+                    if lwv < 0 or lwv > 100:
+                        raise ValueError("lwv out of range")
                     if mode == 'hwb':
-                        if sb + lw > 100:
-                            raise ValueError("sb + lw > 100")
+                        if sb + lwv > 100:
+                            raise ValueError("sb + lwv > 100")
                     if len(col) == 4:
-                        if mode == 'hsl':
-                            raise ValueError("hsl should not have alpha")
+                        if mode in ('hsl', 'hsv'):
+                            raise ValueError("hsl/hsv should not have alpha")
                         if col[3].endswith('%'):
                             alpha = float(col[3][:-1])
                         else:
                             alpha = float(col[3]) * 100.0
                         if alpha < 0 or alpha > 100:
                             raise ValueError("alpha out of range")
+                    elif mode in ('hsla', 'hsva'):
+                        continue
                     else:
                         alpha = 100.0
                     if mode in ('hsl', 'hsla'):
-                        r, g, b = hsl_to_rgb(h, sb, lw)
+                        r, g, b = hsl_to_rgb(h, sb, lwv)
+                    elif mode in ('hsv', 'hsva'):
+                        r, g, b = hsv_to_rgb(h, sb, lwv)
                     else:
-                        r, g, b = hwb_to_rgb(h, sb, lw)
+                        r, g, b = hwb_to_rgb(h, sb, lwv)
                     col = tohex(r, g, b, alpha)
                 else:
                     raise ValueError("invalid hsl/hsla/hwb")
