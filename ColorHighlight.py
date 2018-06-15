@@ -260,15 +260,8 @@ def toicon(name, light=True):
 class ColorHighlightCommand(sublime_plugin.WindowCommand):
     def run_(self, edit_token, args={}):
         view = self.window.active_view()
-        action = args.get('action', '')
-        if view and action:
-            view.run_command('color_highlight', action)
+        view.run_command('color_highlight', args)
 
-    def is_enabled(self):
-        return bool(settings.get('highlight'))
-
-
-class ColorHighlightCommand(ColorHighlightCommand):
     def is_enabled(self):
         return True
 
@@ -346,11 +339,11 @@ class ColorHighlightXHexValsAsColorsCommand(ColorHighlightCommand):
 # command to restore color scheme
 class ColorHighlightRestoreCommand(sublime_plugin.TextCommand):
     def run(self, edit):
+        erase_highlight_colors()
         colorizer.restore_color_scheme()
 
 
 all_regs = []
-inited = 0
 
 
 class ColorHighlightCommand(sublime_plugin.TextCommand):
@@ -360,16 +353,15 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
         self.view = view
         self.help_called = False
 
-    def run_(self, edit_token, action):
+    def run_(self, edit_token, args={}):
         '''method called by default via view.run_command;
            used to dispatch to appropriate method'''
+
+        action = args.get('action', '')
         if not action:
             return
 
-        try:
-            lc_action = action.lower()
-        except AttributeError:
-            return
+        lc_action = action.lower()
 
         if lc_action == 'reset':
             self.reset()
@@ -401,8 +393,8 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
     def reset(self):
         '''Removes existing lint marks and restores user settings.'''
         erase_highlight_colors()
+        colorizer.setup_color_scheme(self.view.settings())
         queue_highlight_colors(self.view, preemptive=True)
-        colorizer.clear()
 
     def on(self):
         '''Turns background linting on.'''
@@ -429,40 +421,30 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
         erase_highlight_colors()
 
 
-class BackgroundColorHighlight(sublime_plugin.EventListener):
-    def on_new(self, view):
-        global inited
-        if not inited:
-            colorizer.set_color_scheme(view)
-        inited += 1
-        view.settings().add_on_change('color_scheme', lambda self=self, view=view: colorizer.change_color_scheme(view))
-
-    def on_clone(self, view):
-        self.on_new(view)
-
-    def on_modified(self, view):
+class ColorHighlightViewEventListener(sublime_plugin.ViewEventListener):
+    def on_modified(self):
         if settings.get('highlight') is not True:
-            erase_highlight_colors(view)
             return
 
-        selection = view.command_history(0, True)[0] != 'paste'
-        queue_highlight_colors(view, selection=selection)
+        action = self.view.command_history(0, True)[0]
+        if action == 'revert':
+            erase_highlight_colors()
+            queue_highlight_colors(self.view, preemptive=True)
+        else:
+            selection = action != 'paste'
+            queue_highlight_colors(self.view, selection=selection)
 
-    def on_close(self, view):
-        global inited
-        vid = view.id()
+    def on_close(self):
+        vid = self.view.id()
         if vid in TIMES:
             del TIMES[vid]
         if vid in COLOR_HIGHLIGHTS:
             del COLOR_HIGHLIGHTS[vid]
-        inited -= 1
-        # if inited <= 0:
-        #     colorizer.restore_color_scheme()
 
-    def on_activated(self, view):
-        if view.file_name() is None:
+    def on_activated(self):
+        if self.view.file_name() is None:
             return
-        vid = view.id()
+        vid = self.view.id()
         if vid in TIMES:
             return
         TIMES[vid] = 100
@@ -470,15 +452,15 @@ class BackgroundColorHighlight(sublime_plugin.EventListener):
         if settings.get('highlight') in (False, 'save-only'):
             return
 
-        queue_highlight_colors(view, preemptive=True, event='on_load')
+        queue_highlight_colors(self.view, preemptive=True, event='on_activated')
 
-    def on_post_save(self, view):
+    def on_post_save(self):
         if settings.get('highlight') is False:
             return
 
-        queue_highlight_colors(view, preemptive=True, event='on_post_save')
+        queue_highlight_colors(self.view, preemptive=True, event='on_post_save')
 
-    def on_selection_modified(self, view):
+    def on_selection_modified(self):
         delay_queue(1000)  # on movement, delay queue (to make movement responsive)
 
 
@@ -501,6 +483,9 @@ def erase_highlight_colors(view=None):
 
 
 def highlight_colors(view, selection=False, **kwargs):
+    view_settings = view.settings()
+    colorizer.setup_color_scheme(view_settings)
+
     vid = view.id()
     start = time.time()
 
@@ -513,11 +498,30 @@ def highlight_colors(view, selection=False, **kwargs):
     _xhex_values = bool(settings.get('0x_hex_values'))
     _xterm_color_values = bool(settings.get('xterm_color_values'))
     if selection:
-        colors_re, colors_re_capture = COLORS_RE[(_hex_values, _xhex_values, _xterm_color_values)]
+        colors_re, colors_re_capture = COLORS_RE[
+            (_hex_values, _xhex_values, _xterm_color_values)
+        ]
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
-        matches = [(sublime.Region(selected_lines[i].begin() + m.start(), selected_lines[i].begin() + m.end()), m.groups()) if m else (None, None) for i, am in enumerate(matches) for m in am]
-        matches = [(rg, ''.join(gr[ord(g) - 1] or '' if ord(g) < 10 else g for g in colors_re_capture)) for rg, gr in matches if rg]
+        matches = [
+            (
+                sublime.Region(
+                    selected_lines[i].begin() + m.start(),
+                    selected_lines[i].begin() + m.end()
+                ),
+                m.groups()
+            ) if m else (None, None)
+            for i, am in enumerate(matches) for m in am
+        ]
+        matches = [
+            (
+                rg,
+                ''.join(
+                    gr[ord(g) - 1] or '' if ord(g) < 10 else g for g in colors_re_capture
+                )
+            )
+            for rg, gr in matches if rg
+        ]
         if matches:
             ranges, found = zip(*[q for q in matches if q])
         else:
@@ -679,7 +683,7 @@ def highlight_colors(view, selection=False, **kwargs):
                     alpha = 100.0
                 col = tohex(col0, None, None, alpha)
         except ValueError as e:
-            print(e)
+            # print(e)
             continue
 
         # Fix case when color it's the same as background color:
@@ -701,8 +705,7 @@ def highlight_colors(view, selection=False, **kwargs):
         else:
             words[name].append(ranges[i])
 
-    if colorizer.need_update():
-        colorizer.update(view)
+    colorizer.update(view)
 
     if selection:
         if vid not in COLOR_HIGHLIGHTS:

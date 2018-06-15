@@ -3,12 +3,15 @@ import re
 import sys
 import json
 import errno
+import hashlib
 import plistlib
+import datetime
 
 import sublime
 
 from .colors import names_to_hex, xterm_to_hex
 
+DEFAULT_COLOR_SCHEME = 'Monokai.sublime-color-scheme'
 
 all_names_to_hex = dict(names_to_hex, **xterm_to_hex)
 
@@ -27,15 +30,77 @@ else:
     plistlib.dumps = lambda value: plistlib.writePlistToString(value)
 
 
+def write_package(path, s):
+    rf = sublime.packages_path() + path
+    try:
+        os.makedirs(os.path.dirname(rf))
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+    with open(rf, 'w') as f:
+        f.write(s)
+
+
+def read_package(path):
+    rf = sublime.packages_path() + path
+    if os.path.exists(rf):
+        with open(rf, 'r') as f:
+            res = f.read()
+    else:
+        rf = 'Packages' + path
+        res = sublime.load_resource(rf)
+    return res
+
+
+class ColorScheme(object):
+    backup_ext = ".chback"
+
+    def __init__(self, settings):
+        path = settings.get('color_scheme') or DEFAULT_COLOR_SCHEME
+        if not path.startswith('Packages/'):
+            path = 'Packages/Color Scheme - Default/' + path
+        self.path = path[8:]
+        self.time = datetime.datetime.now()
+
+    @property
+    def md5(self):
+        if not hasattr(self, '_md5'):
+            self._md5 = hashlib.md5(sublime.load_binary_resource('Packages' + self.path)).digest()
+        return self._md5
+
+    def restore(self):
+        # Remove "Packages" part from name
+        if not os.path.exists(sublime.packages_path() + self.path + self.backup_ext):
+            log("No backup :(")
+            return False
+        log("Starting restore scheme: " + self.path)
+        write_package(self.path, read_package(self.path + self.backup_ext))
+        log("Restore done.")
+        return True
+
+    def backup(self, content):
+        if os.path.exists(sublime.packages_path() + self.path + self.backup_ext):
+            log("Already backed up")
+            return False
+        write_package(self.path + self.backup_ext, content)  # backup
+        log("Backup done")
+        return True
+
+    def content(self):
+        if not hasattr(self, '_content'):
+            # Remove "Packages" part from name
+            content = read_package(self.path)
+            self.backup(content)
+            self._content = content
+        return self._content
+
+
 class SchemaColorizer(object):
     prefix = "col_"
-    backup_ext = ".chback"
 
     colors = {}
     color_scheme = None
-    need_upd = False
-    need_restore = False
-    need_backup = False
+    need_update = False
 
     def normalize(self, col):
         if col:
@@ -58,26 +123,6 @@ class SchemaColorizer(object):
                 return '#%02X%02X%02X%02X' % (r, g, b, a)
             except Exception:
                 log("Invalid color: %r" % col)
-
-    def write_file(self, pp, fl, s):
-        rf = pp + fl
-        try:
-            os.makedirs(os.path.dirname(rf))
-        except OSError as e:
-            if e.errno != errno.EEXIST:
-                raise
-        with open(rf, 'w') as f:
-            f.write(s)
-
-    def read_file(self, pp, fl):
-        rf = pp + fl
-        if os.path.exists(rf):
-            with open(rf, 'r') as f:
-                res = f.read()
-        else:
-            rf = 'Packages' + fl
-            res = sublime.load_resource(rf)
-        return res
 
     def get_inv_col(self, bg_col, col):
         br = int(bg_col[1:3], 16)
@@ -115,53 +160,30 @@ class SchemaColorizer(object):
             return
         if col not in self.colors:
             self.colors[col] = self.region_name(col)
-            self.need_upd = True
+            self.need_update = True
         return self.colors[col]
 
-    def need_update(self):
-        return self.need_upd
+    def current_views(self):
+        for window in sublime.windows():
+            for view in window.views():
+                yield view
 
-    def color_scheme_path(self, view):
-        packages_path = sublime.packages_path()
-        cs = self.color_scheme
-        if cs is None:
-            self.color_scheme = view.settings().get('color_scheme')
-            cs = self.color_scheme
-        # do not support empty color scheme
-        if not cs:
-            log("Empty scheme")
-            return
-        # extract name
-        cs = cs[cs.find('/'):]
-        return packages_path, cs
-
-    def get_color_scheme(self, packages_path, cs):
-        content = self.read_file(packages_path, cs)
-        if os.path.exists(packages_path + cs + self.backup_ext):
-            log("Already backuped")
-            self.need_restore = True
-        else:
-            self.write_file(packages_path, cs + self.backup_ext, content)  # backup
-            log("Backup done")
-        return content
+    def get_background_col(self, view=None):
+        style = view.style()
+        bg_col = style.get('background')
+        if bg_col:
+            return (bg_col + 'FF')[:9].upper()
+        return '#333333FF'
 
     def update(self, view):
-        if not self.need_upd:
+        if not self.need_update:
             return
-        self.need_upd = False
+        self.need_update = False
 
-        color_scheme_path = self.color_scheme_path(view)
-        if not color_scheme_path:
-            return
-        packages_path, cs = color_scheme_path
-        content = self.get_color_scheme(packages_path, cs)
-
+        content = self.color_scheme.content()
         current_colors = set("#%s" % c.upper() for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
 
-        if hasattr(view, 'style'):
-            bg_col = (view.style()['background'] + 'FF')[:9].upper()
-        else:
-            bg_col = '#333333FF'
+        bg_col = self.get_background_col(view)
 
         rules = []
         if not re.search(r'\b%sgutter\b' % self.prefix, content):
@@ -187,9 +209,9 @@ class SchemaColorizer(object):
                     json_rules = json.dumps({"rules": rules}, indent=m.group(1))
                     json_rules = '\n'.join(map(str.rstrip, json_rules.split('\n')[2:-2])) + ',\n'
                     content = content[:m.end()] + json_rules + content[m.end():]
-                    self.write_file(packages_path, cs, content)
-                    self.need_restore = True
+                    write_package(self.color_scheme.path, content)
                     log("Updated sublime-color-scheme")
+                    return
 
                 # for tmTheme
                 if re.match(r'^\s*<?xml', content):
@@ -203,54 +225,34 @@ class SchemaColorizer(object):
                         }
                     } for r in rules)
                     content = plistlib.dumps(plist_content).decode('utf-8')
-                    self.write_file(packages_path, cs, content)
-                    self.need_restore = True
+                    write_package(self.color_scheme.path, content)
                     log("Updated tmTheme")
+                    return
 
-                log("Not Updated: Schem format not recognized")
+                log("Not Updated: Schema format not recognized")
             except Exception as e:
                 log("Not Updated: %s" % e)
 
     def clear(self):
-        self.colors.clear()
+        self.colors = {}
+
+    def setup_color_scheme(self, settings):
+        color_scheme = ColorScheme(settings)
+        if self.color_scheme and self.color_scheme.path == color_scheme.path:
+            if self.color_scheme.time + datetime.timedelta(seconds=1) > color_scheme.time:
+                return
+            if self.color_scheme.md5 == color_scheme.md5:
+                self.color_scheme.time = color_scheme.time
+                return
+        log("Color scheme %s setup" % color_scheme.path)
+        self.color_scheme = color_scheme
+        content = self.color_scheme.content()
+        self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
 
     def restore_color_scheme(self):
-        if not self.need_restore:
-            return
-        self.need_restore = False
-        cs = self.color_scheme
         # do not support empty color scheme
-        if not cs:
+        if not self.color_scheme:
             log("Empty scheme, can't restore")
             return
-        # extract name
-        cs = cs[cs.find('/'):]
-        packages_path = sublime.packages_path()
-        if os.path.exists(packages_path + cs + self.backup_ext):
-            log("Starting restore scheme: " + cs)
-            # TODO: move to other thread
-            self.write_file(packages_path, cs, self.read_file(packages_path, cs + self.backup_ext))
-            self.colors.clear()
-            log("Restore done.")
-        else:
-            log("No backup :(")
-
-    def set_color_scheme(self, view):
-        settings = view.settings()
-        cs = settings.get('color_scheme')
-        if cs != self.color_scheme:
-            color_scheme_path = self.color_scheme_path(view)
-            if color_scheme_path:
-                packages_path, cs = color_scheme_path
-                content = self.get_color_scheme(packages_path, cs)
-                self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
-            self.color_scheme = settings.get('color_scheme')
-            self.need_backup = True
-
-    def change_color_scheme(self, view):
-        cs = view.settings().get('color_scheme')
-        if cs and cs != self.color_scheme:
-            log("Color scheme changed %s -> %s" % (self.color_scheme, cs))
-            self.restore_color_scheme()
-            self.set_color_scheme(view)
-            self.update(view)
+        if self.color_scheme.restore():
+            self.colors = {}
