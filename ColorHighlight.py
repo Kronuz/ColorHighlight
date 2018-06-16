@@ -109,7 +109,8 @@ def regex_factory(
         colors_regex = []
         if function_colors:
             num = r'\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%|deg)?)\s*'
-            colors_regex.append(r'(%s)\((?:%s,%s,%s|(%s))(?:,%s)?\)' % (r'|'.join(function_colors), num, num, num, r'|'.join(simple_colors), num))
+            sc = r'|(%s)' % r'|'.join(simple_colors) if simple_colors else r''
+            colors_regex.append(r'(%s)\((?:%s,%s,%s%s)(?:,%s)?\)' % (r'|'.join(function_colors), num, num, num, sc, num))
 
         if simple_colors:
             colors_regex.append(r'(%s)' % r'|'.join(simple_colors))
@@ -118,7 +119,7 @@ def regex_factory(
         if function_colors and simple_colors:
             colors_regex_capture = r'\1|\2\5\7,\3,\4,\6'
         elif function_colors:
-            colors_regex_capture = r'\1|\2\5,\3,\4,\6'
+            colors_regex_capture = r'\1|\2,\3,\4,\5'
         elif simple_colors:
             colors_regex_capture = r'|\1'
         else:
