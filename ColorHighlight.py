@@ -42,59 +42,138 @@ VERSION = "1.0.7"
 # \033[38;5;22m
 # \033[38;2;0;0;255m
 
-def regexp_factory(names):
-    _COLORS = r'(?<![-.\w])%s(?![-.\w])' % r'(?![-.\w])|(?<![-.\w])'.join(names.keys())
+regex_cache = {}
+re_cache = {}
 
-    _ALL_HEX_COLORS = r'%s|%s' % (_COLORS, r'(?:#|0x)[0-9a-fA-F]{8}\b|(?:#|0x)[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b|(?:\x1b|\\033|\\x1b)\[(?:\d{1,3}(?:;\d{1,3})*m)')
-    _ALL_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _ALL_HEX_COLORS,
-        r'(%s)' % _ALL_HEX_COLORS,
+
+def regex_factory(
+    named_values,
+    x_hex_values,
+    hex_values,
+    xterm_color_values,
+    rgb_values,
+    hsv_values,
+    hsl_values,
+    hwb_values,
+    lab_values,
+    lch_values,
+):
+    key = (
+        named_values,
+        x_hex_values,
+        hex_values,
+        xterm_color_values,
+        rgb_values,
+        hsv_values,
+        hsl_values,
+        hwb_values,
+        lab_values,
+        lch_values,
     )
-    _ALL_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
+    try:
+        colors_regex, colors_regex_capture = regex_cache[key]
+    except KeyError:
+        function_colors = []
+        if rgb_values:
+            function_colors.extend([r'rgb', r'rgba'])
+        if hsv_values:
+            function_colors.extend([r'hsv', r'hsva'])
+        if hsl_values:
+            function_colors.extend([r'hsl', r'hsla'])
+        if hwb_values:
+            function_colors.append(r'hwb')
+        if lab_values:
+            function_colors.append(r'lab')
+        if lch_values:
+            function_colors.append(r'lch')
 
-    _XHEX_COLORS = r'%s|%s' % (_COLORS, r'0x[0-9a-fA-F]{8}\b|0x[0-9a-fA-F]{6}\b')
-    _XHEX_COLORS = r'%s|%s' % (
-        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _XHEX_COLORS,
-        r'(%s)' % _XHEX_COLORS,
+        simple_colors = []
+        if named_values:
+            simple_colors.append(r'(?<![-.\w])%s(?![-.\w])' % r'(?![-.\w])|(?<![-.\w])'.join(names_to_hex.keys()))
+        if x_hex_values and hex_values:
+            simple_colors.append(r'(?:#|0x)[0-9a-fA-F]{8}\b')
+            simple_colors.append(r'(?:#|0x)[0-9a-fA-F]{6}\b')
+            simple_colors.append(r'#[0-9a-fA-F]{4}\b')
+            simple_colors.append(r'#[0-9a-fA-F]{3}\b')
+        elif x_hex_values:
+            simple_colors.append(r'#[0-9a-fA-F]{8}\b')
+            simple_colors.append(r'#[0-9a-fA-F]{6}\b')
+            simple_colors.append(r'#[0-9a-fA-F]{4}\b')
+            simple_colors.append(r'#[0-9a-fA-F]{3}\b')
+        elif hex_values:
+            simple_colors.append(r'0x[0-9a-fA-F]{8}\b')
+            simple_colors.append(r'0x[0-9a-fA-F]{6}\b')
+        if xterm_color_values:
+            simple_colors.append(r'(?:\x1b|\\033|\\x1b)\[\d{1,3}(?:;\d{1,3})*m')
+
+        colors_regex = []
+        if function_colors:
+            num = r'\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%|deg)?)\s*'
+            colors_regex.append(r'(%s)\((?:%s,%s,%s|(%s))(?:,%s)?\)' % (r'|'.join(function_colors), num, num, num, r'|'.join(simple_colors), num))
+
+        if simple_colors:
+            colors_regex.append(r'(%s)' % r'|'.join(simple_colors))
+        colors_regex = r'|'.join(colors_regex)
+
+        if function_colors and simple_colors:
+            colors_regex_capture = r'\1|\2\5\7,\3,\4,\6'
+        elif function_colors:
+            colors_regex_capture = r'\1|\2\5,\3,\4,\6'
+        elif simple_colors:
+            colors_regex_capture = r'|\1'
+        else:
+            colors_regex_capture = ''
+
+        regex_cache[key] = colors_regex, colors_regex_capture
+
+    return colors_regex, colors_regex_capture
+
+
+def re_factory(
+    named_values,
+    x_hex_values,
+    hex_values,
+    xterm_color_values,
+    rgb_values,
+    hsv_values,
+    hsl_values,
+    hwb_values,
+    lab_values,
+    lch_values,
+):
+    key = (
+        named_values,
+        x_hex_values,
+        hex_values,
+        xterm_color_values,
+        rgb_values,
+        hsv_values,
+        hsl_values,
+        hwb_values,
+        lab_values,
+        lch_values,
     )
-    _XHEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
+    try:
+        colors_re, colors_re_capture = re_cache[key]
+    except KeyError:
+        colors_regex, colors_regex_capture = regex_factory(
+            named_values=named_values,
+            x_hex_values=x_hex_values,
+            hex_values=hex_values,
+            xterm_color_values=xterm_color_values,
+            rgb_values=rgb_values,
+            hsv_values=hsv_values,
+            hsl_values=hsl_values,
+            hwb_values=hwb_values,
+            lab_values=lab_values,
+            lch_values=lch_values,
+        )
+        colors_re = re.compile(colors_regex)
+        colors_re_capture = re.sub(r'\\([0-9])', lambda m: chr(int(m.group(1))), colors_regex_capture)
 
-    _HEX_COLORS = r'%s|%s' % (_COLORS, r'#[0-9a-fA-F]{8}\b|#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{4}\b|#[0-9a-fA-F]{3}\b')
-    _HEX_COLORS = r'%s|%s' % (
-        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _HEX_COLORS,
-        r'(%s)' % _HEX_COLORS,
-    )
-    _HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
+        re_cache[key] = colors_re, colors_re_capture
 
-    _NO_HEX_COLORS = r'%s' % (_COLORS,)
-    _NO_HEX_COLORS = r'%s|%s' % (
-        r'(rgba|rgb|hsva|hsv|hsla|hsl|hwb|lab|lch)\((?:([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?),\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?)|(%s))(?:,\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%%|deg)?))?\)' % _NO_HEX_COLORS,
-        r'(%s)' % _NO_HEX_COLORS,
-    )
-    _NO_HEX_COLORS_CAPTURE = r'\1|\2\5\7,\3,\4,\6'
-
-    return (
-        _NO_HEX_COLORS,
-        _NO_HEX_COLORS_CAPTURE,
-        _XHEX_COLORS,
-        _XHEX_COLORS_CAPTURE,
-        _HEX_COLORS,
-        _HEX_COLORS_CAPTURE,
-        _ALL_HEX_COLORS,
-        _ALL_HEX_COLORS_CAPTURE,
-    )
-
-
-_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE, _XHEX_COLORS, _XHEX_COLORS_CAPTURE, _HEX_COLORS, _HEX_COLORS_CAPTURE, _ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE = regexp_factory(names_to_hex)
-COLORS_REGEX = {
-    (False, False): (_NO_HEX_COLORS, _NO_HEX_COLORS_CAPTURE,),
-    (False, True): (_XHEX_COLORS, _XHEX_COLORS_CAPTURE),
-    (True, False): (_HEX_COLORS, _HEX_COLORS_CAPTURE),
-    (True, True): (_ALL_HEX_COLORS, _ALL_HEX_COLORS_CAPTURE),
-}
-
-_R_RE = re.compile(r'\\([0-9])')
-COLORS_RE = dict((k, (re.compile(v[0]), _R_RE.sub(lambda m: chr(int(m.group(1))), v[1]))) for k, v in COLORS_REGEX.items())
+    return colors_re, colors_re_capture
 
 
 def hsv_to_rgb(h, s, v):
@@ -502,13 +581,29 @@ def highlight_colors(view, selection=False, **kwargs):
 
     words = {}
     found = []
-    _hex_values = bool(settings.get('hex_values'))
-    _xhex_values = bool(settings.get('0x_hex_values'))
-    _xterm_color_values = bool(settings.get('xterm_color_values'))
+    named_values = bool(settings.get('named_values', True))
+    hex_values = bool(settings.get('hex_values', True))
+    x_hex_values = bool(settings.get('0x_hex_values', True))
+    xterm_color_values = bool(settings.get('xterm_color_values', True))
+    rgb_values = bool(settings.get('rgb_values', True))
+    hsv_values = bool(settings.get('hsv_values', True))
+    hsl_values = bool(settings.get('hsl_values', True))
+    hwb_values = bool(settings.get('hwb_values', True))
+    lab_values = bool(settings.get('lab_values', True))
+    lch_values = bool(settings.get('lch_values', True))
     if selection:
-        colors_re, colors_re_capture = COLORS_RE[
-            (_hex_values, _xhex_values)
-        ]
+        colors_re, colors_re_capture = re_factory(
+            named_values=named_values,
+            x_hex_values=x_hex_values,
+            hex_values=hex_values,
+            xterm_color_values=xterm_color_values,
+            rgb_values=rgb_values,
+            hsv_values=hsv_values,
+            hsl_values=hsl_values,
+            hwb_values=hwb_values,
+            lab_values=lab_values,
+            lch_values=lch_values,
+        )
         selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
         matches = [
@@ -536,8 +631,19 @@ def highlight_colors(view, selection=False, **kwargs):
             ranges = []
     else:
         selected_lines = None
-        colors_re, colors_re_capture = COLORS_REGEX[(_hex_values, _xhex_values)]
-        ranges = view.find_all(colors_re, 0, colors_re_capture, found)
+        colors_regex, colors_regex_capture = regex_factory(
+            named_values=named_values,
+            x_hex_values=x_hex_values,
+            hex_values=hex_values,
+            xterm_color_values=xterm_color_values,
+            rgb_values=rgb_values,
+            hsv_values=hsv_values,
+            hsl_values=hsl_values,
+            hwb_values=hwb_values,
+            lab_values=lab_values,
+            lch_values=lch_values,
+        )
+        ranges = view.find_all(colors_regex, 0, colors_regex_capture, found)
 
     for i, col in enumerate(found):
         mode, _, col = col.partition('|')

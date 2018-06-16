@@ -14,12 +14,33 @@
         "highlight": true,
 
         /*
-            hex_values - Highlights Hex colors
+            named_values - Highlights HTML named colors
         */
-        "hex_values" : true,
+        "named_values": true,
 
-        "0x_hex_values" : true,
+        /*
+            hex_values - Highlights #RRGGBBAA Hash Hex colors
+        */
+        "hex_values": true,
 
-        "xterm_color_values": false
+        /*
+            0x_hex_values - Highlights 0xRRGGBBAA Hexadecimal colors
+        */
+        "0x_hex_values": true,
+
+        /*
+            xterm_color_values - Highlights xterm colors
+        */
+        "xterm_color_values": true,
+
+        /*
+            XXX_values - Highlights rgb/rgba, hsv/hsva, hsl/hsla, hwb, lab, lch colors
+        */
+        "rgb_values": true,
+        "hsv_values": true,
+        "hsl_values": true,
+        "hwb_values": true,
+        "lab_values": true,
+        "lch_values": true
     }
 }
