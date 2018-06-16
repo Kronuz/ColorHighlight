@@ -1,19 +1,11 @@
 [
     {
-        "caption": "Preferences: ColorHighlight Settings – Default",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/ColorHighlight/ColorHighlight.sublime-settings"
-        }
+        "caption": "Preferences: ColorHighlight Settings",
+        "command": "edit_settings",
+        "args": {
+          "base_file": "${packages}/ColorHighlight/ColorHighlight.sublime-settings",
+          "default": "/*\n\tColorHighlight user settings in here override the default\n*/\n{\n\t\"user\": {\n\t\t$0\n\t}\n}\n"}
     },
-    {
-        "caption": "Preferences: ColorHighlight Settings – User",
-        "command": "open_file", "args":
-        {
-            "file": "${packages}/User/ColorHighlight.sublime-settings"
-        }
-    },
-
     {
         "caption": "ColorHighlight: Color Highlight Current File",
         "command": "color_highlight",
