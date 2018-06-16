@@ -646,12 +646,12 @@ def highlight_colors(view, selection=False, **kwargs):
                 else:
                     raise ValueError("invalid lch")
             elif len(col) == 1:
-                # In the form of color name black or #FFFFFFFF or 0xFFFFFF or xterm \033[32m:
+                # In the form of: black, #FFFFFFFF, 0xFFFFFF, \033[1;37m, \033[38;5;255m, \033[38;2;255;255;255m:
                 col0 = col[0]
-                if col0.endswith('m') and (col0.startswith('\x1b[') or col0.startswith('\\033[') or col0.startswith('\\x1b[')):
-                    _, _, col0 = col0.partition('[')
-                    col0 = ';' + col0[:-1] + ';'
-                    col0 = re.sub(r';0+', ';', col0)
+                if col0.endswith('m') and '[' in col0:
+                    _, _, col0 = col0[:-1].partition('[')
+                    col0 = ';' + col0 + ';'
+                    col0 = re.sub(r';0*(?=\d)', r';', col0)
                     xterm_true = col0.find(';38;2;')
                     xterm = col0.find(';38;5;')
                     if xterm_true != -1:
