@@ -52,4 +52,5 @@ Copyright (C) 2018 German Mendez Bravo (Kronuz). All rights reserved.
 
 MIT license
 
-This plugin was initially a for of https://github.com/Monnoroch/ColorHighlighter
+This plugin was initially a fork of
+https://github.com/Monnoroch/ColorHighlighter
