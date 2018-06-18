@@ -481,6 +481,7 @@ class ColorHighlightCommand(sublime_plugin.TextCommand):
     def reset(self):
         '''Removes existing lint marks and restores user settings.'''
         erase_highlight_colors()
+        TIMES.clear()
         colorizer.setup_color_scheme(self.view.settings())
         queue_highlight_colors(self.view, preemptive=True)
 
@@ -552,7 +553,7 @@ class ColorHighlightViewEventListener(sublime_plugin.ViewEventListener):
         delay_queue(1000)  # on movement, delay queue (to make movement responsive)
 
 
-TIMES = {}       # collects how long it took the color highlight to complete
+TIMES = {}  # collects how long it took the color highlight to complete
 COLOR_HIGHLIGHTS = {}  # Highlighted regions
 
 
@@ -1104,7 +1105,10 @@ __active_color_highlight_thread.start()
 ################################################################################
 # Initialize settings and main objects only once
 class ColorHighlightSettings(Settings):
-    pass
+    def on_update(self):
+        window = sublime.active_window()
+        view = window.active_view()
+        view.run_command('color_highlight', dict(action='reset'))
 
 
 settings = ColorHighlightSettings(NAME)
