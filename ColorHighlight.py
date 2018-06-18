@@ -888,10 +888,15 @@ def highlight_colors(view, selection=False, **kwargs):
         erase_highlight_colors(view)
     all_regs = COLOR_HIGHLIGHTS[vid]
 
+    highlight_values = bool(settings.get('highlight_values', True))
+    gutter_icons = bool(settings.get('gutter_icons', True))
+
     for name, w in words.items():
-        view.add_regions(name, w, name, flags=sublime.PERSISTENT)
-        wi = [sublime.Region(i, i) for i in set(view.line(r).a for r in w)]
-        view.add_regions(name + '_icon', wi, '%sgutter' % colorizer.prefix, icon=toicon(name), flags=sublime.PERSISTENT)
+        if highlight_values:
+            view.add_regions(name, w, name, flags=sublime.PERSISTENT)
+        if gutter_icons:
+            wi = [sublime.Region(i, i) for i in set(view.line(r).a for r in w)]
+            view.add_regions(name + '_icon', wi, '%sgutter' % colorizer.prefix, icon=toicon(name), flags=sublime.PERSISTENT)
         all_regs.add(name)
 
     TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to color highlight
