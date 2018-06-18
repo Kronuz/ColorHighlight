@@ -20,26 +20,26 @@ Supported color representations are:
 - Named colors in the form of CSS3 color names
   e.g. `green`, `black` and many others are also supported.
 
-- Hexademical in the form of #RGB, #RGBA, #RRGGBB or #RRGGBBAA
+- Hexademical in the form of `#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`
   (you can use both upper and lower case letters)
 
-- Hexadecimal numbers with prefix 0x in the form of 0xRRGGBB or 0xRRGGBBAA
+- Hexadecimal numbers with prefix 0x in the form of `0xRRGGBB` or `0xRRGGBBAA`
 
-- RBG or RGBA value in the form of rgb(red, green, blue) or rgba(red, green, blue, alpha)
+- RBG or RGBA value in the form of `rgb(red, green, blue)` or `rgba(red, green, blue, alpha)`
   with decimal channel values
 
-- HSL or HSLA value in the form of hsl(hue, sat%, lum%) or hsla(hue, sat%, lum%, alpha)
+- HSL or HSLA value in the form of `hsl(hue, sat%, lum%)` or `hsla(hue, sat%, lum%, alpha)`
 
-- HSV or HSVA value in the form of hsv(hue, sat%, val%) or hsva(hue, sat%, val%, alpha)
+- HSV or HSVA value in the form of `hsv(hue, sat%, val%)` or `hsva(hue, sat%, val%, alpha)`
 
-- HWB value in the form of hwb(hue, white%, black%) or hwb(hue, white%, black%, alpha)
+- HWB value in the form of `hwb(hue, white%, black%)` or `hwb(hue, white%, black%, alpha)`
 
-- CIELAB (Lab) value in the form of lab(lum, a, b) or lab(lum, a, b, alpha)
+- CIELAB (Lab) value in the form of `lab(lum, a, b)` or `lab(lum, a, b, alpha)`
 
-- Cylindrical CIELAB (LCH) in the form of lch(hue, chroma, lum) or lch(hue, chroma, lum, alpha)
+- Cylindrical CIELAB (LCH) in the form of `lch(hue, chroma, lum)` or `lch(hue, chroma, lum, alpha)`
 
 - ANSI escape sequences: 3/4 bit (8-color), 8-bit (256-color), 24-bit (true color)
-  in the form of \033[3Xm, \033[4Xm, \033[38;5;IIIm or \033[38;2;RRR,GGG,BBBm
+  in the form of `\033[3Xm`, `\033[4Xm`, `\033[38;5;IIIm` or `\033[38;2;RRR,GGG,BBBm`.
   Escape part accepting "`^[`[", "\033", "\x1b[", "\u001b[" and "\e["
 
 
