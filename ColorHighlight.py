@@ -104,7 +104,7 @@ def regex_factory(
             simple_colors.append(r'0x[0-9a-fA-F]{8}\b')
             simple_colors.append(r'0x[0-9a-fA-F]{6}\b')
         if xterm_color_values:
-            simple_colors.append(r'(?:\x1b|\\033|\\x1b)\[\d{1,3}(?:;\d{1,3})*m')
+            simple_colors.append(r'(?:\x1b|\\033|\\x1b|\\u001b|\\e)\[\d{1,3}(?:;\d{1,3})*m')
 
         colors_regex = []
         if function_colors:

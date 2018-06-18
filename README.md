@@ -1,7 +1,7 @@
 # 🎨 Color Highlight
 
 Show color codes (like "#ffffff", 0xffffff "rgb(255, 255, 255)", "white",
-hsl(0, 0%, 100%), etc.) with their real color as the background and gutter icons.
+hsl(0, 0%, 100%), etc.) with their real color as the background and/or gutter icons.
 
 ![Description](screenshots/screenshot.gif?raw=true)
 
@@ -17,15 +17,30 @@ hsl(0, 0%, 100%), etc.) with their real color as the background and gutter icons
 
 Supported color representations are:
 
-- Hexademical e.g. #RGB or #RRGGBB or #RRGGBBAA (you can use both upper and lower case letters)
+- Named colors in the form of CSS3 color names
+  e.g. `green`, `black` and many others are also supported.
 
-- RBG or RGBA value e.g. rgb(rrr, ggg, bbb) or rgba(rrr, ggg, bbb, a.aaa) with decimal channel values.
+- Hexademical in the form of #RGB, #RGBA, #RRGGBB or #RRGGBBAA
+  (you can use both upper and lower case letters)
 
-- HSL or HSLA value e.g. hsl(hue, sat%, lum%) or hsla(hue, sat%, lum%, a.aaa).
+- Hexadecimal numbers with prefix 0x in the form of 0xRRGGBB or 0xRRGGBBAA
 
-- Hexadecimal numbers with prefix 0x like 0xRRGGBBAA
+- RBG or RGBA value in the form of rgb(red, green, blue) or rgba(red, green, blue, alpha)
+  with decimal channel values
 
-- Named colors like "green", "black" and many others are also supported.
+- HSL or HSLA value in the form of hsl(hue, sat%, lum%) or hsla(hue, sat%, lum%, alpha)
+
+- HSV or HSVA value in the form of hsv(hue, sat%, val%) or hsva(hue, sat%, val%, alpha)
+
+- HWB value in the form of hwb(hue, white%, black%) or hwb(hue, white%, black%, alpha)
+
+- CIELAB (Lab) value in the form of lab(lum, a, b) or lab(lum, a, b, alpha)
+
+- Cylindrical CIELAB (LCH) in the form of lch(hue, chroma, lum) or lch(hue, chroma, lum, alpha)
+
+- ANSI escape sequences: 3/4 bit (8-color), 8-bit (256-color), 24-bit (true color)
+  in the form of \033[3Xm, \033[4Xm, \033[38;5;IIIm or \033[38;2;RRR,GGG,BBBm
+  Escape part accepting "`^[`[", "\033", "\x1b[", "\u001b[" and "\e["
 
 
 Those will be shown with colored background and gutter icons when they're found in
