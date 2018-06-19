@@ -14,12 +14,17 @@
         "highlight": true,
 
         /*
-            gutter_icons - Show color as gutter icon
+            gutter_icon - Show color as gutter icon:
+
+            false - Disable gutter icon
+            "circle" - Circle gutter icon
+            "square" - Square cutter icon
+            "fill" - Fill gutter with color
         */
-        "gutter_icons": true,
+        "gutter_icon": "circle",
 
         /*
-            gutter_icons - Show color by highlighting the value region
+            highlight_values - Show color by highlighting the value region
         */
         "highlight_values": true,
 
