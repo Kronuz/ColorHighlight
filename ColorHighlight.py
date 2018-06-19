@@ -541,13 +541,13 @@ class ColorHighlightViewEventListener(sublime_plugin.ViewEventListener):
         if settings.get('highlight') in (False, 'save-only'):
             return
 
-        queue_highlight_colors(self.view, preemptive=True, event='on_activated')
+        queue_highlight_colors(self.view, preemptive=True)
 
     def on_post_save(self):
         if settings.get('highlight') is False:
             return
 
-        queue_highlight_colors(self.view, preemptive=True, event='on_post_save')
+        queue_highlight_colors(self.view, preemptive=True)
 
     def on_selection_modified(self):
         delay_queue(1000)  # on movement, delay queue (to make movement responsive)
@@ -909,7 +909,7 @@ def highlight_colors(view, selection=False, **kwargs):
 QUEUE = {}       # views waiting to be processed by ColorHighlight
 
 # For snappier color highlighting, different delays are used for different color highlighting times:
-# (color highlighting time, delays)
+# (color_highlighting_time, (delay, delay_when_busy))
 DELAYS = (
     (50, (50, 100)),
     (100, (100, 300)),
@@ -921,21 +921,21 @@ DELAYS = (
 
 
 def get_delay(t, view):
-    delay = 0
+    delays = 0
 
     for _t, d in DELAYS:
         if _t <= t:
-            delay = d
+            delays = d
         else:
             break
 
-    delay = delay or DELAYS[0][1]
+    delays = delays or DELAYS[0][1]
 
     # If the user specifies a delay greater than the built in delay,
     # figure they only want to see marks when idle.
-    minDelay = int(settings.get('delay', 0) * 1000)
+    min_delay = int(settings.get('delay', 0) * 1000)
 
-    return (minDelay, minDelay) if minDelay > delay[1] else delay
+    return (min_delay, min_delay) if min_delay > delays[1] else delays
 
 
 def _update_view(view, filename, **kwargs):
@@ -959,17 +959,17 @@ def _update_view(view, filename, **kwargs):
     highlight_colors(view, **kwargs)
 
 
-def queue_highlight_colors(view, timeout=-1, preemptive=False, event=None, **kwargs):
+def queue_highlight_colors(view, delay=-1, preemptive=False, **kwargs):
     '''Put the current view in a queue to be examined by a ColorHighlight'''
 
     if preemptive:
-        timeout = busy_timeout = 0
-    elif timeout == -1:
-        timeout, busy_timeout = get_delay(TIMES.get(view.id(), 100), view)
+        delay = delay_when_busy = 0
+    elif delay == -1:
+        delay, delay_when_busy = get_delay(TIMES.get(view.id(), 100), view)
     else:
-        busy_timeout = timeout
+        delay_when_busy = delay
 
-    kwargs.update({'timeout': timeout, 'busy_timeout': busy_timeout, 'preemptive': preemptive, 'event': event})
+    kwargs.update({'delay': delay, 'delay_when_busy': delay_when_busy, 'preemptive': preemptive})
     queue(view, partial(_update_view, view, (view.file_name() or '').encode('utf-8'), **kwargs), kwargs)
 
 
@@ -1020,14 +1020,13 @@ def queue(view, callback, kwargs):
 
     try:
         QUEUE[view.id()] = callback
-        timeout = kwargs['timeout']
-        busy_timeout = kwargs['busy_timeout']
+        delay = kwargs['delay']
 
-        if now < __signaled_ + timeout * 4:
-            timeout = busy_timeout or timeout
+        if now < __signaled_ + delay * 4:
+            delay = kwargs['delay_when_busy']
 
         __signaled_ = now
-        _delay_queue(timeout, kwargs['preemptive'])
+        _delay_queue(delay, kwargs['preemptive'])
 
         # print('%s queued in %s' % ('' if __signaled_first_ else 'first ', __signaled_ - now))
         if not __signaled_first_:
@@ -1036,7 +1035,7 @@ def queue(view, callback, kwargs):
         __lock_.release()
 
 
-def _delay_queue(timeout, preemptive):
+def _delay_queue(delay, preemptive):
     global __signaled_, __queued_
     now = time.time()
 
@@ -1044,16 +1043,16 @@ def _delay_queue(timeout, preemptive):
         return  # never delay queues too fast (except preemptively)
 
     __queued_ = now
-    _timeout = float(timeout) / 1000
+    _delay = float(delay) / 1000
 
     if __signaled_first_:
-        if MAX_DELAY > 0 and now - __signaled_first_ + _timeout > MAX_DELAY:
-            _timeout -= now - __signaled_first_
-            if _timeout < 0:
-                _timeout = 0
-            timeout = int(round(_timeout * 1000, 0))
+        if MAX_DELAY > 0 and now - __signaled_first_ + _delay > MAX_DELAY:
+            _delay -= now - __signaled_first_
+            if _delay < 0:
+                _delay = 0
+            delay = int(round(_delay * 1000, 0))
 
-    new__signaled_ = now + _timeout - 0.01
+    new__signaled_ = now + _delay - 0.01
 
     if __signaled_ >= now - 0.01 and (preemptive or new__signaled_ >= __signaled_ - 0.01):
         __signaled_ = new__signaled_
@@ -1064,13 +1063,13 @@ def _delay_queue(timeout, preemptive):
                 return
             __semaphore_.release()
 
-        sublime.set_timeout(_signal, timeout)
+        sublime.set_timeout(_signal, delay)
 
 
-def delay_queue(timeout):
+def delay_queue(delay):
     __lock_.acquire()
     try:
-        _delay_queue(timeout, False)
+        _delay_queue(delay, False)
     finally:
         __lock_.release()
 
