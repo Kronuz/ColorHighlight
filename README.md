@@ -1,5 +1,8 @@
 # 🎨 Color Highlight
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/Kronuz/25)
+[![Package Control](https://img.shields.io/packagecontrol/dt/Color%20Highlight.svg)](https://packagecontrol.io/packages/Color%20Highlight)
+
 Show color codes (like "#ffffff", 0xffffff "rgb(255, 255, 255)", "white",
 hsl(0, 0%, 100%), etc.) with their real color as the background and/or gutter icons.
 
@@ -61,15 +64,12 @@ your documents.
   + "square" - Gutter icon with the color in a square
   + "fill" - Fill whole gutter with color
 
+  ![Gutter Icon](screenshots/gutter_icon.png?raw=true)
+
 - Highlighting the value region in the color can be enabled or disabled by
   using the `highlight_values` setting.
 
 - Enabling/disabling coloring of different types of values can be configured.
-
-
-## Donate
-
-[![Click here to lend your support to ColorHighlight and make a donation!](https://www.paypalobjects.com/en_GB/i/btn/btn_donate_LG.gif)](https://www.paypal.me/Kronuz/25)
 
 
 ## License
