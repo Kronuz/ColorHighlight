@@ -899,8 +899,9 @@ def highlight_colors(view, selection=False, **kwargs):
             view.add_regions(name + '_icon', wi, '%sgutter' % colorizer.prefix, icon=toicon(name), flags=sublime.PERSISTENT)
         all_regs.add(name)
 
-    TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to color highlight
-    # print('highlight took %s' % TIMES[vid])
+    if not selection:
+        TIMES[vid] = (time.time() - start) * 1000  # Keep how long it took to do a full color highlight
+        # print('highlight took %s' % TIMES[vid])
 
 
 ################################################################################
