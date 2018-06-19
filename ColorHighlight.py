@@ -521,7 +521,7 @@ class ColorHighlightViewEventListener(sublime_plugin.ViewEventListener):
             queue_highlight_colors(self.view, preemptive=True)
         else:
             selection = action != 'paste'
-            queue_highlight_colors(self.view, selection=selection)
+            queue_highlight_colors(self.view, preemptive=selection, selection=selection)
 
     def on_close(self):
         vid = self.view.id()
