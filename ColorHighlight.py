@@ -578,11 +578,6 @@ def highlight_colors(view, selection=False, **kwargs):
     vid = view.id()
     start = time.time()
 
-    if len(view.sel()) > 100:
-        selection = False
-
-    words = {}
-    found = []
     named_values = bool(settings.get('named_values', True))
     hex_values = bool(settings.get('hex_values', True))
     x_hex_values = bool(settings.get('0x_hex_values', True))
@@ -593,6 +588,12 @@ def highlight_colors(view, selection=False, **kwargs):
     hwb_values = bool(settings.get('hwb_values', True))
     lab_values = bool(settings.get('lab_values', True))
     lch_values = bool(settings.get('lch_values', True))
+
+    if len(view.sel()) > 100:
+        selection = False
+
+    words = {}
+    found = []
     if selection:
         colors_re, colors_re_capture = re_factory(
             named_values=named_values,
@@ -606,7 +607,7 @@ def highlight_colors(view, selection=False, **kwargs):
             lab_values=lab_values,
             lch_values=lch_values,
         )
-        selected_lines = list(ln for r in view.sel() for ln in view.lines(r))
+        selected_lines = [ln for r in view.sel() for ln in view.lines(r)]
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
         matches = [
             (
@@ -907,7 +908,7 @@ def highlight_colors(view, selection=False, **kwargs):
 ################################################################################
 # Queue connection
 
-QUEUE = {}       # views waiting to be processed by ColorHighlight
+QUEUE = {}  # views waiting to be processed by ColorHighlight
 
 # For snappier color highlighting, different delays are used for different color highlighting times:
 # (color_highlighting_time, (delay, delay_when_busy))
