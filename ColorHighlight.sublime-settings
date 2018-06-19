@@ -16,10 +16,10 @@
         /*
             gutter_icon - Show color as gutter icon:
 
-            false - Disable gutter icon
-            "circle" - Circle gutter icon
-            "square" - Square cutter icon
+            "circle" - Circle gutter icon (the default)
+            "square" - Square gutter icon
             "fill" - Fill gutter with color
+            false - Disable gutter icon
         */
         "gutter_icon": "circle",
 

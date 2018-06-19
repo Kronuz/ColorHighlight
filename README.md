@@ -49,11 +49,22 @@ your documents.
 
 ## Configuration
 
+- You can disable live highlight directly from the command palette:
+  `ColorHighlight: Disable Color Highlight`
+
 - Open settings using the command palette:
   `Preferences: ColorHighlight Settings - User`
 
-- You can disable live highlight directly from the command palette:
-  `ColorHighlight: Disable Color Highlight`
+- Gutter icons can be switched among three flavors (or disabled) by using
+  the `gutter_icon` setting:
+  + "circle" - Gutter icon with the color in a circle
+  + "square" - Gutter icon with the color in a square
+  + "fill" - Fill whole gutter with color
+
+- Highlighting the value region in the color can be enabled or disabled by
+  using the `highlight_values` setting.
+
+- Enabling/disabling coloring of different types of values can be configured.
 
 
 ## Donate
