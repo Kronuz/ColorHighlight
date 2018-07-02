@@ -354,6 +354,7 @@ def toicon(name, gutter_icon=True, light=True):
         with open(icon_path, 'wb') as fp:
             fp.write(png)
     relative_icon_path = os.path.relpath(icon_path, os.path.dirname(sublime.packages_path()))
+    relative_icon_path = relative_icon_path.replace('\\', '/')
     return relative_icon_path
 
 
