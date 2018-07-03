@@ -227,7 +227,6 @@ class SchemaColorizer(object):
                 if re.match(r'^\s*<\?xml', content):
                     plist_content = plistlib.loads(content.encode('utf-8'))
                     plist_content['settings'].extend({
-                        "name": r['name'],
                         "scope": r['scope'],
                         "settings": {
                             "foreground": r['foreground'],
