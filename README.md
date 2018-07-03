@@ -13,7 +13,7 @@ hsl(0, 0%, 100%), etc.) with their real color as the background and/or gutter ic
 - **_Recommended_** - Using [Sublime Package Control](https://packagecontrol.io "Sublime Package Control")
     - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> then select `Package Control: Install Package`
     - install `Color Highlight`
-- Alternatively, download the package from [GitHub](https://github.com/Kronuz/Color-Highlight "Color Highlight") into your `Packages` folder.
+- Alternatively, download the package from [GitHub](https://github.com/Kronuz/ColorHighlight "Color Highlight") into your `Packages` folder and make sure to rename the directory to "Color Highlight".
 
 
 ## Usage
