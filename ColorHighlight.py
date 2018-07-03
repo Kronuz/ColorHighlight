@@ -16,7 +16,7 @@ import sublime_plugin
 from .settings import Settings, SettingTogglerCommandMixin
 from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex, xterm8_to_hex, xterm8b_to_hex, xterm8f_to_hex
 
-NAME = "ColorHighlight"
+NAME = "Color Highlight"
 VERSION = "1.1.5"
 
 
@@ -924,7 +924,7 @@ def highlight_colors(view, selection=False, **kwargs):
 ################################################################################
 # Queue connection
 
-QUEUE = {}  # views waiting to be processed by ColorHighlight
+QUEUE = {}  # views waiting to be processed by Color Highlight
 
 # For snappier color highlighting, different delays are used for different color highlighting times:
 # (color_highlighting_time, (delay, delay_when_busy))
@@ -980,7 +980,7 @@ def _update_view(view, filename, **kwargs):
 
 
 def queue_highlight_colors(view, delay=-1, preemptive=False, **kwargs):
-    '''Put the current view in a queue to be examined by a ColorHighlight'''
+    '''Put the current view in a queue to be examined by a Color Highlight'''
 
     if preemptive:
         delay = delay_when_busy = 0

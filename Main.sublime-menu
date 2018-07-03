@@ -1,34 +1,11 @@
 [
     {
-        "id": "preferences",
-        "caption": "Preferences",
-        "mnemonic": "n",
+        "id": "tools",
         "children": [
             {
-                "id": "package-settings",
-                "caption": "Package Settings",
-                "mnemonic": "P",
-                "children": [
-                    {
-                        "caption": "ColorHighlight Settings",
-                        "command": "edit_settings",
-                        "args": {
-                            "base_file": "${packages}/ColorHighlight/ColorHighlight.sublime-settings",
-                            "default": "/*\n\tColorHighlight user settings in here override the default\n*/\n{\n\t\"user\": {\n\t\t$0\n\t}\n}\n"
-                        }
-                    }
-                ]
-            }
-        ]
-    },
-    {
-        "id": "tools",
-        "children":
-        [
-            {
+                "id": "color-highlight",
                 "caption": "Color Highlight",
-                "children":
-                [
+                "children": [
                     {
                         "caption": "Color Highlight",
                         "command": "color_highlight",
@@ -44,6 +21,28 @@
                         "caption": "Reset Text Marker",
                         "command": "text_marker_reset",
                         "mnemonic": "R"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "preferences",
+        "caption": "Preferences",
+        "mnemonic": "n",
+        "children": [
+            {
+                "id": "package-settings",
+                "caption": "Package Settings",
+                "mnemonic": "P",
+                "children": [
+                    {
+                        "caption": "Color Highlight Settings",
+                        "command": "edit_settings",
+                        "args": {
+                            "base_file": "${packages}/Color Highlight/Color Highlight.sublime-settings",
+                            "default": "/*\n\tColor Highlight user settings in here override the default\n*/\n{\n\t\"user\": {\n\t\t$0\n\t}\n}\n"
+                        }
                     }
                 ]
             }

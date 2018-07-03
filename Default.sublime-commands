@@ -1,43 +1,43 @@
 [
     {
-        "caption": "Preferences: ColorHighlight Settings",
+        "caption": "Preferences: Color Highlight Settings",
         "command": "edit_settings",
         "args": {
-          "base_file": "${packages}/ColorHighlight/ColorHighlight.sublime-settings",
-          "default": "/*\n\tColorHighlight user settings in here override the default\n*/\n{\n\t\"user\": {\n\t\t$0\n\t}\n}\n"}
+          "base_file": "${packages}/Color Highlight/Color Highlight.sublime-settings",
+          "default": "/*\n\tColor Highlight user settings in here override the default\n*/\n{\n\t\"user\": {\n\t\t$0\n\t}\n}\n"}
     },
     {
-        "caption": "ColorHighlight: Color Highlight Current File",
+        "caption": "Color Highlight: Color Highlight Current File",
         "command": "color_highlight",
         "args": {"action": "highlight"}
     },
     {
-        "caption": "ColorHighlight: Load-Save Color Highlighting",
+        "caption": "Color Highlight: Load-Save Color Highlighting",
         "command": "color_highlight_enable_load_save",
         "args": {"action": "load-save"}
     },
     {
-        "caption": "ColorHighlight: Save-Only Color Highlighting",
+        "caption": "Color Highlight: Save-Only Color Highlighting",
         "command": "color_highlight_enable_save_only",
         "args": {"action": "save-only"}
     },
     {
-        "caption": "ColorHighlight: Disable Color Highlighting",
+        "caption": "Color Highlight: Disable Color Highlighting",
         "command": "color_highlight_disable",
         "args": {"action": "off"}
     },
     {
-        "caption": "ColorHighlight: Enable Color Highlighting",
+        "caption": "Color Highlight: Enable Color Highlighting",
         "command": "color_highlight_enable",
         "args": {"action": "on"}
     },
     {
-        "caption": "ColorHighlight: Reset",
+        "caption": "Color Highlight: Reset",
         "command": "color_highlight",
         "args": {"action": "reset"}
     },
     {
-        "caption": "ColorHighlight: Restore Color Scheme",
+        "caption": "Color Highlight: Restore Color Scheme",
         "command": "color_highlight_restore",
     }
 ]

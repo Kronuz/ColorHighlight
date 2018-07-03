@@ -13,7 +13,7 @@ hsl(0, 0%, 100%), etc.) with their real color as the background and/or gutter ic
 - **_Recommended_** - Using [Sublime Package Control](https://packagecontrol.io "Sublime Package Control")
     - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> then select `Package Control: Install Package`
     - install `Color Highlight`
-- Alternatively, download the package from [GitHub](https://github.com/Kronuz/ColorHighlight "ColorHighlight") into your `Packages` folder.
+- Alternatively, download the package from [GitHub](https://github.com/Kronuz/Color-Highlight "Color Highlight") into your `Packages` folder.
 
 
 ## Usage
@@ -53,10 +53,10 @@ your documents.
 ## Configuration
 
 - You can disable live highlight directly from the command palette:
-  `ColorHighlight: Disable Color Highlight`
+  `Color Highlight: Disable Color Highlight`
 
 - Open settings using the command palette:
-  `Preferences: ColorHighlight Settings - User`
+  `Preferences: Color Highlight Settings - User`
 
 - Gutter icons can be switched among three flavors (or disabled) by using
   the `gutter_icon` setting:

@@ -1,10 +1,10 @@
 /*
-    ColorHighlight default settings
+    Color Highlight default settings
 */
 {
     "default": {
         /*
-            highlight - Sets the mode in which ColorHighlight runs:
+            highlight - Sets the mode in which Color Highlight runs:
 
             true - Color highlighting occurs in the background as you type (the default).
             false - Color highlighting only occurs when you initiate it.
