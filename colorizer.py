@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import re
 import sys
@@ -15,9 +17,19 @@ DEFAULT_COLOR_SCHEME = 'Monokai.sublime-color-scheme'
 all_names_to_hex = dict(names_to_hex, **xterm_to_hex)
 
 
-def log(s):
-    # print("[Colorizer]", s)
-    pass
+class Log(object):
+    def info(self, *args):
+        print("[Colorizer]", end=" ")
+        for arg in args:
+            print(arg, end=" ")
+        print()
+
+    debug = lambda s, *a: None
+    error = info
+    warn = info
+    # debug = info
+
+log = Log()
 
 
 if sys.version_info[0] == 3:
@@ -69,19 +81,19 @@ class ColorScheme(object):
     def restore(self):
         # Remove "Packages" part from name
         if not os.path.exists(sublime.packages_path() + self.path + self.backup_ext):
-            log("No backup :(")
+            log.debug("No backup :(")
             return False
-        log("Starting restore scheme: " + self.path)
+        log.debug("Starting restore scheme: " + self.path)
         write_package(self.path, read_package(self.path + self.backup_ext))
-        log("Restore done.")
+        log.debug("Restore done.")
         return True
 
     def backup(self, content):
         if os.path.exists(sublime.packages_path() + self.path + self.backup_ext):
-            log("Already backed up")
+            log.debug("Already backed up")
             return False
         write_package(self.path + self.backup_ext, content)  # backup
-        log("Backup done")
+        log.debug("Backup done")
         return True
 
     def content(self):
@@ -120,7 +132,7 @@ class SchemaColorizer(object):
                 a = int(col[7:9], 16) or 1  # alpha == 0 doesn't apply alpha in Sublime
                 return '#%02X%02X%02X%02X' % (r, g, b, a)
             except Exception:
-                log("Invalid color: %r" % col)
+                log.debug("Invalid color: %r" % col)
 
     def get_inv_col(self, bg_col, col):
         br = int(bg_col[1:3], 16)
@@ -208,7 +220,7 @@ class SchemaColorizer(object):
                     json_rules = '\n'.join(map(str.rstrip, json_rules.split('\n')[2:-2])) + ',\n'
                     content = content[:m.end()] + json_rules + content[m.end():]
                     write_package(self.color_scheme.path, content)
-                    log("Updated sublime-color-scheme")
+                    log.debug("Updated sublime-color-scheme")
                     return
 
                 # for tmTheme
@@ -224,12 +236,13 @@ class SchemaColorizer(object):
                     } for r in rules)
                     content = plistlib.dumps(plist_content).decode('utf-8')
                     write_package(self.color_scheme.path, content)
-                    log("Updated tmTheme")
+                    log.debug("Updated tmTheme")
                     return
 
-                log("Not Updated: Schema format not recognized")
+                log.error("Not Updated: Schema format not recognized")
             except Exception as e:
-                log("Not Updated: %s" % e)
+                import traceback; traceback.print_exc();
+                log.error("Not Updated: %r" % e)
 
     def clear(self):
         self.colors = {}
@@ -242,7 +255,7 @@ class SchemaColorizer(object):
             if self.color_scheme.hash() == color_scheme.hash():
                 self.color_scheme.time = color_scheme.time
                 return
-        log("Color scheme %s setup" % color_scheme.path)
+        log.debug("Color scheme %s setup" % color_scheme.path)
         self.color_scheme = color_scheme
         content = self.color_scheme.content()
         self.colors = dict(("#%s" % c, "%s%s" % (self.prefix, c)) for c in re.findall(r'\b%s([a-fA-F0-9]{8})\b' % self.prefix, content))
@@ -250,7 +263,7 @@ class SchemaColorizer(object):
     def restore_color_scheme(self):
         # do not support empty color scheme
         if not self.color_scheme:
-            log("Empty scheme, can't restore")
+            log.error("Empty scheme, can't restore")
             return
         if self.color_scheme.restore():
             self.colors = {}
