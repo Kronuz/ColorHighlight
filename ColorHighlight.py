@@ -608,9 +608,16 @@ def highlight_colors(view, selection=False, **kwargs):
     if len(view.sel()) > 100:
         selection = False
 
+    if selection:
+        selected_lines = [ln for r in view.sel() for ln in view.lines(r)]
+    elif view.size() > 512000:
+        selected_lines = view.lines(view.visible_region())
+    else:
+        selected_lines = None
+
     words = {}
     found = []
-    if selection:
+    if selected_lines:
         colors_re, colors_re_capture = re_factory(
             named_values=named_values,
             x_hex_values=x_hex_values,
@@ -623,7 +630,6 @@ def highlight_colors(view, selection=False, **kwargs):
             lab_values=lab_values,
             lch_values=lch_values,
         )
-        selected_lines = [ln for r in view.sel() for ln in view.lines(r)]
         matches = [colors_re.finditer(view.substr(l)) for l in selected_lines]
         matches = [
             (
@@ -649,7 +655,6 @@ def highlight_colors(view, selection=False, **kwargs):
         else:
             ranges = []
     else:
-        selected_lines = None
         colors_regex, colors_regex_capture = regex_factory(
             named_values=named_values,
             x_hex_values=x_hex_values,
@@ -880,7 +885,7 @@ def highlight_colors(view, selection=False, **kwargs):
 
     colorizer.update(view)
 
-    if selection:
+    if selected_lines:
         if vid not in COLOR_HIGHLIGHTS:
             COLOR_HIGHLIGHTS[vid] = set()
         for name in COLOR_HIGHLIGHTS[vid]:
