@@ -224,7 +224,7 @@ class SchemaColorizer(object):
                     return
 
                 # for tmTheme
-                if re.match(r'^\s*<\?xml', content):
+                if re.match(r'\s*<(?:\?xml|!DOCTYPE|plist)\b', content):
                     plist_content = plistlib.loads(content.encode('utf-8'))
                     plist_content['settings'].extend({
                         "scope": r['scope'],
