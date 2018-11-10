@@ -214,7 +214,7 @@ class SchemaColorizer(object):
         if rules:
             try:
                 # For sublime-color-scheme
-                m = re.search(r'([\t ]*)"rules":\s*\[[\r\n]+', content)
+                m = re.search(r'([\t ]*)"rules":\s*\[', content)
                 if m:
                     json_rules = json.dumps({"rules": rules}, indent=m.group(1))
                     json_rules = '\n'.join(map(str.rstrip, json_rules.split('\n')[2:-2])) + ',\n'
