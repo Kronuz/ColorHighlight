@@ -60,9 +60,16 @@ your documents.
 
 - Gutter icons can be switched among three flavors (or disabled) by using
   the `gutter_icon` setting:
+ 
   + "circle" - Gutter icon with the color in a circle
   + "square" - Gutter icon with the color in a square
   + "fill" - Fill whole gutter with color
+  
+  ```
+  "user": {
+    "gutter_icon": "fill"
+  }
+  ```
 
   ![Gutter Icon](screenshots/gutter_icon.png?raw=true)
 
