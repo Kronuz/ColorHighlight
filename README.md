@@ -28,10 +28,10 @@ Supported color representations are:
 
 - Hexadecimal numbers with prefix 0x in the form of `0xRRGGBB` or `0xRRGGBBAA`
 
-- RBG or RGBA value in the form of `rgb(red, green, blue)` or `rgba(red, green, blue, alpha)`
+- RBG or RGBA value in the form of `rgb(red, green, blue)`, `rgba(red, green, blue, alpha)`, `rgb(red green blue)` or `rgb(red green blue / alpha)`
   with decimal channel values
 
-- HSL or HSLA value in the form of `hsl(hue, sat%, lum%)` or `hsla(hue, sat%, lum%, alpha)`
+- HSL or HSLA value in the form of `hsl(hue, sat%, lum%)`, `hsla(hue, sat%, lum%, alpha)`, `hsl(hue sat% lum%)` or `hsla(hue sat% lum% / alpha)`
 
 - HSV or HSVA value in the form of `hsv(hue, sat%, val%)` or `hsva(hue, sat%, val%, alpha)`
 

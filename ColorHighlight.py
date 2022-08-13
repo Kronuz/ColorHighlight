@@ -16,8 +16,8 @@ import sublime_plugin
 from .settings import Settings, SettingTogglerCommandMixin
 from .colorizer import SchemaColorizer, all_names_to_hex, names_to_hex, xterm_to_hex, xterm8_to_hex, xterm8b_to_hex, xterm8f_to_hex
 
-NAME = "Color Highlight"
-VERSION = "1.2.2"
+NAME = "Color Highlight (gotcha9999)"
+VERSION = "1.3.0-gotcha9999"
 
 
 # Color formats:
@@ -29,11 +29,14 @@ VERSION = "1.2.2"
 # rgba(255, 255, 255, 1)
 # rgba(255, 255, 255, .2)
 # rgba(255, 255, 255, 0.5)
+# rgb(255 255 255)
+# rgb(255 255 255 / 80%)
 # black
-# rgba(white, 20%)
 # 0xFFFFFF
 # hsl(360, 0%, 50%)
 # hsla(360, 0%, 50%, 0.5)
+# hsl(360deg 0% 40%)
+# hsl(360deg 0% 90% / 80%)
 # hwb(360, 50%, 50%)
 # lab(100, 100, 100) <-> #ff9331
 # lch(100, 100, 100) <-> #ffff00
@@ -110,7 +113,7 @@ def regex_factory(
         if function_colors:
             num = r'\s*([-+]?(?:[0-9]*\.\d+|[0-9]+)(?:%|deg)?)\s*'
             sc = r'|(%s)' % r'|'.join(simple_colors) if simple_colors else r''
-            colors_regex.append(r'(%s)\((?:%s,%s,%s%s)(?:,%s)?\)' % (r'|'.join(function_colors), num, num, num, sc, num))
+            colors_regex.append(r'(%s)\((?:%s[,|\s]%s[,|\s]%s%s)(?:[,|/]%s)?\)' % (r'|'.join(function_colors), num, num, num, sc, num))
 
         if simple_colors:
             colors_regex.append(r'(%s)' % r'|'.join(simple_colors))
@@ -696,16 +699,16 @@ def highlight_colors(view, selection=False, **kwargs):
                         if sb + lwv > 100:
                             raise ValueError("sb + lwv > 100")
                     if len(col) == 4:
-                        if mode in ('hsl', 'hsv'):
-                            raise ValueError("hsl/hsv should not have alpha")
+                        # if mode in ('hsv'):
+                        #     raise ValueError("hsv should not have alpha")
                         if col[3].endswith('%'):
                             alpha = float(col[3][:-1])
                         else:
                             alpha = float(col[3]) * 100.0
                         if alpha < 0 or alpha > 100:
                             raise ValueError("alpha out of range")
-                    elif mode in ('hsla', 'hsva'):
-                        continue
+                    # elif mode in ('hsla', 'hsva'):
+                    #     continue
                     else:
                         alpha = 100.0
                     if mode in ('hsl', 'hsla'):
@@ -839,27 +842,6 @@ def highlight_colors(view, selection=False, **kwargs):
                 else:
                     alpha = 100.0
                 col = tohex(r, g, b, alpha)
-            else:
-                # In the form of rgba(white, 20%) or rgba(#FFFFFF, 0.4):
-                col0 = col[0]
-                col0 = all_names_to_hex.get(col0.lower(), col0.upper())
-                if col0.startswith('0X'):
-                    col0 = '#' + col0[2:]
-                if len(col0) == 4:
-                    col0 = '#' + col0[1] * 2 + col0[2] * 2 + col0[3] * 2 + 'FF'
-                elif len(col0) == 7:
-                    col0 += 'FF'
-                if len(col) == 4:
-                    col3 = col[3]
-                    if col3.endswith('%'):
-                        alpha = float(col3[:-1])
-                    else:
-                        alpha = float(col3) * 100.0
-                    if alpha < 0 or alpha > 100:
-                        raise ValueError("alpha out of range")
-                else:
-                    alpha = 100.0
-                col = tohex(col0, None, None, alpha)
         except (ValueError, IndexError, KeyError) as e:
             # print(e)
             continue
